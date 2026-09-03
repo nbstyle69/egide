@@ -117,6 +117,8 @@ Elles ne sont écrites nulle part dans le client. Les redéfinir côté écran, 
 - **Tournois par équipes** : protocole « **pose – deux – choix** » itéré N-1 fois (l'attaquant pose un de ses joueurs, le défenseur en présente deux, l'attaquant choisit, puis les rôles s'inversent) ; le dernier match se forme tout seul. Le **journal `captain_picks` est l'état** — le tour et le geste attendu s'en déduisent, rien n'est stocké en double. Aucune minuterie : l'organisateur peut agir à la place d'un capitaine absent.
 - **Messages** : une seule table pour deux portées (tournoi / équipe) et **suppression douce**, jamais d'effacement.
 
+Une **fonction de trigger** se termine par son `revoke` (`from public, anon, authenticated`) comme une fonction RPC se termine par son `grant` — migration 0052. Le privilège ne protège rien (Postgres refuse d'appeler une fonction de trigger directement), mais un avertissement d'advisor qu'on laisse traîner finit par masquer celui qu'il ne fallait pas ignorer.
+
 **Les migrations sont numérotées et immuables** : pour changer le schéma ou une fonction, **ajouter une nouvelle migration** `00NN_description.sql`, ne jamais éditer une existante. Corollaire facile à oublier : une fonction est souvent **redéfinie plus tard** par `create or replace` — `start_tournament` et `generate_next_round` sont réécrits en 0045 pour aiguiller entre tournoi individuel et tournoi par équipes. Avant de modifier une fonction, `grep` son nom dans **toutes** les migrations et repartir de la **dernière** définition.
 
 ### Comment une migration atteint la base
