@@ -7,6 +7,7 @@ import { Modal } from '../components/modal';
 import { StatusBadge } from '../components/status-badge';
 import { Toast } from '../components/toast';
 import { duplicateTournament, type TournamentWithCount } from '../hooks/use-my-tournaments';
+import { matchRegion, Regions } from '../lib/regions';
 import { supabase } from '../lib/supabase';
 import {
   CancellableStatuses,
@@ -84,7 +85,11 @@ export function TournoiDetailPage({
     if (!tournament) return;
     setName(tournament.name);
     setCity(tournament.city);
-    setRegion(tournament.region ?? '');
+    // Une région saisie librement avant la liste fermée est rapprochée de son
+    // libellé officiel — « Rhone alpes » retrouve « Auvergne-Rhône-Alpes ». Si
+    // rien ne correspond, on la garde telle quelle plutôt que de l'effacer :
+    // c'est à l'organisateur de trancher, pas au formulaire.
+    setRegion(matchRegion(tournament.region) ?? tournament.region ?? '');
     setDate(tournament.event_date);
     if (PointsPresets.includes(tournament.points_limit)) {
       setPointsChip(tournament.points_limit);
@@ -140,7 +145,7 @@ export function TournoiDetailPage({
     if (!tournament) return;
     setName(tournament.name);
     setCity(tournament.city);
-    setRegion(tournament.region ?? '');
+    setRegion(matchRegion(tournament.region) ?? tournament.region ?? '');
     setDate(tournament.event_date);
     if (PointsPresets.includes(tournament.points_limit)) {
       setPointsChip(tournament.points_limit);
@@ -344,14 +349,29 @@ export function TournoiDetailPage({
           </div>
 
           <div className="field">
-            <label htmlFor="region">Région (optionnel)</label>
-            <input
+            <label htmlFor="region">Région</label>
+            <select
               id="region"
               className="input"
               value={region}
               onChange={(event) => setRegion(event.target.value)}
-              disabled={busy}
-            />
+              disabled={busy}>
+              <option value="">Aucune région</option>
+              {/* Valeur héritée que la liste ne reconnaît pas : on la propose
+                  quand même, sinon ouvrir la fiche l'effacerait en silence. */}
+              {region !== '' && !Regions.some((value) => value === region) ? (
+                <option value={region}>{region} (ancienne saisie)</option>
+              ) : null}
+              {Regions.map((value) => (
+                <option key={value} value={value}>
+                  {value}
+                </option>
+              ))}
+            </select>
+            <div className="field-hint">
+              Liste fermée : elle sert aux filtres de l’annuaire, qui ne rapprochent que des
+              libellés identiques.
+            </div>
           </div>
 
           <div className="field">
@@ -371,12 +391,19 @@ export function TournoiDetailPage({
 
           <div className="field">
             <label>Type de tournoi</label>
+            {/* Le type est figé après la création : il décide de la mécanique
+                d'appariement. On l'affiche donc tel qu'il est, désactivé — et
+                non « Individuel » par défaut, ce qui mentait sur un tournoi par
+                équipes. */}
             <div className="segmented">
-              <button type="button" className="active">
+              <button type="button" className={tournament.type === 'team' ? '' : 'active'} disabled>
                 Individuel
               </button>
-              <button type="button" disabled>
-                Équipe <span className="badge-soon">Bientôt</span>
+              <button type="button" className={tournament.type === 'team' ? 'active' : ''} disabled>
+                Par équipes
+                {tournament.type === 'team' && tournament.team_size
+                  ? ` de ${tournament.team_size}`
+                  : ''}
               </button>
             </div>
           </div>

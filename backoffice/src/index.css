@@ -164,6 +164,18 @@ a {
   border-color: var(--accent);
 }
 
+/* Une liste fermée (région) porte la même classe qu'un champ texte : c'est le
+   même rang dans le formulaire, ce doit être la même hauteur et le même
+   cadre. Seul le curseur trahit qu'elle se déroule. */
+select.input {
+  cursor: pointer;
+}
+
+select.input:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
 .input.input-error {
   border-color: var(--danger);
 }

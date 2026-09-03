@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
-import { Modal } from '../components/modal';
 import { StatusBadge } from '../components/status-badge';
 import type { TournamentWithCount } from '../hooks/use-my-tournaments';
 import { formatEventDateShort, StatusLabels } from '../lib/tournaments';
@@ -24,7 +23,6 @@ export function TournoisPage({ tournaments, loading, error, onRetry }: Props) {
   const navigate = useNavigate();
   const [sortKey, setSortKey] = useState<SortKey>('event_date');
   const [sortAsc, setSortAsc] = useState(true);
-  const [createModal, setCreateModal] = useState(false);
 
   const sorted = useMemo(() => {
     const copy = [...tournaments];
@@ -84,10 +82,9 @@ export function TournoisPage({ tournaments, loading, error, onRetry }: Props) {
         </svg>
         <h2>Aucun tournoi pour l’instant</h2>
         <p>
-          Créez votre premier tournoi depuis l’application mobile EGIDE : il apparaîtra ici,
-          prêt à être géré.
+          Créez votre premier tournoi : il apparaîtra ici, prêt à être géré.
         </p>
-        <button className="btn btn-primary" onClick={() => setCreateModal(true)}>
+        <button className="btn btn-primary" onClick={() => navigate('/tournois/creer')}>
           + Créer un tournoi
         </button>
       </div>
@@ -167,7 +164,7 @@ export function TournoisPage({ tournaments, loading, error, onRetry }: Props) {
           ) : null}
         </div>
         {!loading && tournaments.length > 0 ? (
-          <button className="btn btn-primary" onClick={() => setCreateModal(true)}>
+          <button className="btn btn-primary" onClick={() => navigate('/tournois/creer')}>
             + Créer un tournoi
           </button>
         ) : null}
@@ -175,19 +172,6 @@ export function TournoisPage({ tournaments, loading, error, onRetry }: Props) {
 
       {body}
 
-      {createModal ? (
-        <Modal title="Bientôt disponible ici" onClose={() => setCreateModal(false)}>
-          <p style={{ margin: 0 }}>
-            La création de tournoi se fait pour l’instant depuis l’application mobile EGIDE
-            (onglet Tournois). Elle arrivera prochainement dans cet espace.
-          </p>
-          <div className="modal-actions">
-            <button className="btn btn-secondary" onClick={() => setCreateModal(false)}>
-              Compris
-            </button>
-          </div>
-        </Modal>
-      ) : null}
     </>
   );
 }

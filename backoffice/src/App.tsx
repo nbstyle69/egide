@@ -11,6 +11,7 @@ import { AdminEquipesPage } from './pages/admin-equipes';
 import { AdminTableauDeBordPage } from './pages/admin-tableau-de-bord';
 import { AdminTournoisPage } from './pages/admin-tournois';
 import { ConnexionPage } from './pages/connexion';
+import { CreerTournoiPage } from './pages/creer-tournoi';
 import { CheckInPage } from './pages/check-in';
 import { ClassementPage } from './pages/classement';
 import { InscritsPage } from './pages/inscrits';
@@ -212,6 +213,15 @@ export default function App() {
         element={
           <Layout email={shell.email} pseudo={shell.pseudo} isAdmin={shell.isAdmin}>
             <CircuitsPage userId={shell.userId} />
+          </Layout>
+        }
+      />
+      {/* Avant /tournois/:id : « creer » n'est pas un identifiant de tournoi. */}
+      <Route
+        path="/tournois/creer"
+        element={
+          <Layout email={shell.email} pseudo={shell.pseudo} isAdmin={shell.isAdmin}>
+            <CreerTournoiPage userId={shell.userId} />
           </Layout>
         }
       />
