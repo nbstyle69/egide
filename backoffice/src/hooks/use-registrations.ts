@@ -11,7 +11,15 @@ export type Registration = {
   dropped_round: number | null;
   /** Faction déclarée pour ce tournoi (US-9.3), ou null. */
   faction: string | null;
+  /** Rang du joueur dans le roster de son équipe, ou null en individuel. */
+  roster_position: number | null;
   profile: { pseudo: string; region: string | null } | null;
+  /**
+   * L'équipe qui a inscrit ce joueur, en tournoi par équipes. L'écran ne
+   * l'affiche pas — c'est l'export qui en a besoin : une liste de trente noms
+   * sans équipe n'est pas exploitable le jour J.
+   */
+  team_registration: { team: { name: string } | null } | null;
 };
 
 /** Ordre d'arrivée : il fait foi pour la liste d'attente. */
@@ -46,7 +54,9 @@ export function useRegistrations(tournamentId: string | undefined) {
     const { data, error: dbError } = await supabase
       .from('registrations')
       .select(
-        'id, player_id, status, created_at, dropped_round, faction, profile:profiles(pseudo, region)'
+        'id, player_id, status, created_at, dropped_round, faction, roster_position, ' +
+          'profile:profiles(pseudo, region), ' +
+          'team_registration:team_registrations(team:teams(name))'
       )
       .eq('tournament_id', tournamentId);
     if (dbError) {

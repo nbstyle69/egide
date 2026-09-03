@@ -8,10 +8,16 @@ import { RegistrationBadge } from '../components/registration-badge';
 import { Toast } from '../components/toast';
 import type { TournamentWithCount } from '../hooks/use-my-tournaments';
 import { useRegistrations, type Registration } from '../hooks/use-registrations';
+import { downloadCsv, slugForFile } from '../lib/export';
 import { ordinalFr } from '../lib/ordinal';
 import { flushPushQueue } from '../lib/push';
 import { supabase } from '../lib/supabase';
-import { formatDateNumeric, formatEventDateShort, RemovableStatuses } from '../lib/tournaments';
+import {
+  formatDateNumeric,
+  formatEventDateShort,
+  RegistrationStatusLabels,
+  RemovableStatuses,
+} from '../lib/tournaments';
 
 /** Au-delà de ce nombre de lignes, on propose une recherche (comme sur mobile). */
 const SearchThreshold = 25;
@@ -187,6 +193,71 @@ export function InscritsPage({
     }
   }
 
+  /** La faction telle qu'elle est affichée : correction de séance comprise. */
+  function factionOf(registration: Registration): string {
+    const value =
+      registration.id in factionEdits ? factionEdits[registration.id] : registration.faction;
+    return value ?? '';
+  }
+
+  /**
+   * Exporte la liste complète en CSV (badges, chevalets de table, pointage
+   * papier, import dans l'outil de l'organisateur).
+   *
+   * Trois partis pris :
+   * — **tout le monde y figure**, inscrits, liste d'attente et désistements,
+   *   séparés par une colonne « Statut » plutôt que par trois fichiers : le
+   *   jour J, la question est « qui est là ? », pas « quel onglet ? » ;
+   * — **la recherche à l'écran ne filtre pas l'export**. Le champ sert à
+   *   retrouver quelqu'un des yeux ; un fichier amputé sans le dire serait la
+   *   pire des surprises à l'impression ;
+   * — **l'ordre affiché est conservé** (inscrits par pseudo, attente par ordre
+   *   d'arrivée, qui fait foi), pour que le fichier se relise comme l'écran.
+   */
+  function exportCsv() {
+    if (!tournament) return;
+    const isTeam = tournament.type === 'team';
+
+    const headers = [
+      'Statut',
+      'Position',
+      ...(isTeam ? ['Équipe', 'Ordre roster'] : []),
+      'Joueur',
+      'Faction',
+      'Région',
+      'Inscrit le',
+    ];
+
+    const line = (registration: Registration, statut: string, position: string) => [
+      statut,
+      position,
+      ...(isTeam
+        ? [
+            registration.team_registration?.team?.name ?? '',
+            registration.roster_position ?? '',
+          ]
+        : []),
+      registration.profile?.pseudo ?? '',
+      factionOf(registration),
+      registration.profile?.region ?? '',
+      formatDateNumeric(registration.created_at),
+    ];
+
+    const rows = [
+      ...registered.map((r) => line(r, RegistrationStatusLabels[r.status], '')),
+      ...waitlisted.map((r) =>
+        line(r, RegistrationStatusLabels.waitlisted, String(positions.get(r.id) ?? ''))
+      ),
+      ...withdrawn.map((r) => line(r, RegistrationStatusLabels.withdrawn, '')),
+    ];
+
+    downloadCsv(
+      `inscrits-${slugForFile(tournament.name)}-${tournament.event_date}.csv`,
+      headers,
+      rows
+    );
+  }
+
   if (tournamentLoading || loading) {
     return (
       <>
@@ -265,14 +336,22 @@ export function InscritsPage({
           <h1 className="page-title">Inscrits</h1>
           <div className="page-subtitle">{formatEventDateShort(tournament.event_date)}</div>
         </div>
-        {total > SearchThreshold ? (
-          <input
-            className="input search-input"
-            placeholder="Rechercher un joueur"
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-          />
-        ) : null}
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          {total > SearchThreshold ? (
+            <input
+              className="input search-input"
+              placeholder="Rechercher un joueur"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+            />
+          ) : null}
+          {/* Rien à exporter tant que personne n'est inscrit. */}
+          {total > 0 ? (
+            <button className="btn btn-secondary" onClick={exportCsv}>
+              Exporter CSV
+            </button>
+          ) : null}
+        </div>
       </div>
 
       {!canRemove && !readOnly ? (
