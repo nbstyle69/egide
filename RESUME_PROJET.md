@@ -27,7 +27,7 @@ deux côtés (`lib/supabase.ts`, `lib/tournaments.ts`, `lib/ordinal.ts`, `hooks/
 
 ### Règle d'architecture centrale
 
-**La logique métier vit dans Postgres, pas dans le client.** 51 migrations numérotées et
+**La logique métier vit dans Postgres, pas dans le client.** 52 migrations numérotées et
 **immuables** dans `supabase/migrations/` — pour changer quoi que ce soit, on **ajoute** une
 migration `00NN_description.sql`, on n'édite jamais une existante. Les fonctions sont en
 `security definer` avec des `grant`/`revoke` explicites, appelées via `supabase.rpc(...)`.
@@ -54,7 +54,7 @@ Fonctions clés : `register_for_tournament`, `promote_waitlist`, `start_tourname
 ## 4. État d'avancement
 
 **Livré et testé : EPIC-1 à 6 (MVP phase 1), EPIC-12 (administration) et EPIC-9 (profil enrichi).**
-Migrations 0001 à 0051.
+Migrations 0001 à 0052.
 
 | EPIC | Contenu | État |
 |---|---|---|
@@ -72,7 +72,9 @@ Migrations 0001 à 0051.
 | 12 | Administration de la plateforme (6 US) | Livré (2026-08-22), validé en navigateur |
 
 Post-MVP livré par ailleurs : Circuit FR (+ page publique partageable), duplication de
-tournoi, export CSV du classement, rappel push J-1.
+tournoi, export CSV du classement, rappel push J-1. Et le 3 septembre 2026 : création de
+tournoi dans le back office, export CSV des inscrits, sauvegarde locale des scores en
+cours de saisie, invitation d'équipe par lien profond, migration de ménage 0052.
 
 ### Le seul point en suspens : EPIC-6
 
@@ -317,14 +319,18 @@ avec son troisième mode de barre latérale sur les routes `/admin/*`.
   `PAIEMENTS.md` avant la première ligne de code.
 - **US-7.10** : ouvrir les listes d'armées à l'équipe adverse avant
   l'appariement — décision de confidentialité, à arbitrer d'abord.
-- **Améliorations notées** : sauvegarde locale des scores en cours de saisie
-  (coupure réseau), export CSV des inscrits, formulaire de création de tournoi
-  dans le back office, partage du code d'invitation par lien profond.
-- **Ménage repéré** : les fonctions de trigger `queue_*` et
-  `guard_registration_faction` sont exécutables par `anon` et
-  `authenticated` (avertissement des advisors Supabase). Sans danger — une
-  fonction de trigger ne s'appelle pas directement — mais à révoquer en une
-  migration groupée.
+- ~~**Améliorations notées**~~ — **les quatre sont livrées le 3 septembre 2026** :
+  sauvegarde locale des scores en cours de saisie, export CSV des inscrits,
+  formulaire de création de tournoi dans le back office, partage du code
+  d'invitation par lien profond. Voir les notes de livraison dans `BACKLOG.md`
+  (US-1.4, US-2.6, US-3.4, US-4.3).
+- ~~**Ménage repéré**~~ — **fait (migration 0052, 2026-09-03)** : les sept
+  fonctions de trigger (`queue_*`, `guard_registration_faction`,
+  `guard_team_size`) ne sont plus exécutables par `anon` ni `authenticated`.
+  Le déclenchement n'est pas affecté : le droit est vérifié à la création du
+  trigger, pas à chaque ligne écrite. **Règle à tenir désormais : toute
+  nouvelle fonction de trigger se termine par son `revoke`**, comme toute
+  fonction RPC se termine par son `grant`.
 
 **Limite connue à ne pas redécouvrir** : un bannissement bloque la connexion et
 le renouvellement de session, mais un jeton d'accès déjà émis reste valide

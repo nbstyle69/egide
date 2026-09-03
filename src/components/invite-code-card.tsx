@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
+import * as Linking from 'expo-linking';
 import { useState } from 'react';
 import { Pressable, Share, StyleSheet, useColorScheme, View } from 'react-native';
 
@@ -60,8 +61,15 @@ export function InviteCodeCard({ code, teamName, onRegenerate }: Props) {
   }
 
   async function share() {
+    // Le lien évite la ressaisie du code — la seule étape où une invitation se
+    // perdait, entre une conversation et un clavier. Le code reste écrit en
+    // toutes lettres à côté : le lien ne marche que si l'app est installée, et
+    // un code se dicte au téléphone.
+    const link = Linking.createURL(`/rejoindre/${code}`);
     await Share.share({
-      message: `Rejoins « ${teamName} » sur EGIDE avec le code ${formatCode(code)}.`,
+      message: `Rejoins « ${teamName} » sur EGIDE : ${link}
+
+Ou saisis le code ${formatCode(code)} dans l’onglet Équipes.`,
     });
   }
 

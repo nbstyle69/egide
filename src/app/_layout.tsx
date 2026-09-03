@@ -42,8 +42,12 @@ export default function RootLayout() {
   const booting = sessionLoading || guestLoading || (session && profileLoading);
   const inAuthGroup = segments[0] === '(auth)';
   // Les fiches d'événement, tables et classements sont publics : un lien
-  // profond ne doit jamais être détourné vers l'écran d'accueil.
-  const onPublicRoute = segments[0] === 'evenements' || segments[0] === 'equipes';
+  // profond ne doit jamais être détourné vers l'écran d'accueil. Une
+  // invitation d'équipe l'est aussi, et pour une raison de plus : elle tombe
+  // presque toujours sur quelqu'un qui n'a pas encore de compte, et l'écran
+  // d'accueil ne lui dirait pas ce qu'il vient de refuser.
+  const onPublicRoute =
+    segments[0] === 'evenements' || segments[0] === 'equipes' || segments[0] === 'rejoindre';
 
   // Tant que l'app décide de sa route, on ne rend que le splash : sans cela,
   // un utilisateur déjà connecté verrait passer l'écran d'accueil.
@@ -74,6 +78,7 @@ export default function RootLayout() {
         <Stack.Screen name="evenements/[id]/liste" />
         <Stack.Screen name="equipes/creer" />
         <Stack.Screen name="equipes/[id]" />
+        <Stack.Screen name="rejoindre/[code]" />
         <Stack.Screen name="historique" />
       </Stack>
     </ThemeProvider>

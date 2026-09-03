@@ -62,7 +62,7 @@ EGIDE est l'application de référence de la scène compétitive francophone War
 
 ### US-1.4 — Fiche de gestion : modifier / annuler — ✅ Livrée (2026-07-25)
 > **Livrée dans le BACK OFFICE WEB** (`backoffice/`), pas dans l'app mobile : décision produit du 2026-07-25 — toute la gestion organisateur se fait désormais dans une application web dédiée (Vite + React), l'app mobile gardant le parcours joueur.
-> Reste à faire en v1.1 : formulaire de création de tournoi dans le back office (aujourd'hui un renvoi vers l'app mobile).
+> ✅ **Formulaire de création livré dans le back office (2026-09-03)** — `/tournois/creer`. Le bouton existait déjà et ouvrait une modale « Bientôt ». Deux écarts assumés avec l'écran mobile : la **région est une liste fermée ici aussi** (le formulaire d'édition la laissait en texte libre, ce qui rouvrait en silence ce que le mobile avait fermé), et le **brouillon est offert** — on prépare la saison à l'avance depuis un écran, et l'ouverture des inscriptions déclenche l'alerte régionale, qui ne part qu'une fois. Corrige au passage l'affichage du type, qui montrait « Individuel » actif même sur un tournoi par équipes.
 **En tant qu'** organisateur, **je veux** modifier ou annuler mon tournoi **afin de** corriger une erreur ou gérer un imprévu.
 - Critères :
   1. La fiche de gestion affiche toutes les infos et permet la modification tant que le tournoi n'est pas « en cours ».
@@ -134,7 +134,7 @@ EGIDE est l'application de référence de la scène compétitive francophone War
 > Livrée dans le **back office**, section « Inscrits » d'un tournoi : résumé chiffré, tableau des inscrits, liste d'attente ordonnée, désistements dans une section repliée.
 > Le retrait passe par la fonction SQL `remove_registration`, qui vérifie que l'appelant est l'organisateur puis promeut le premier de la file dans la même transaction.
 > Retrait possible uniquement tant que le tournoi n'est pas lancé ; ensuite la page est en lecture seule (les retraits du jour relèveront du check-in, US-3.1).
-> Reste à faire plus tard : export CSV de la liste (emplacement réservé dans l'en-tête).
+> ✅ **Export CSV livré (2026-09-03)** — un seul fichier pour les trois listes (inscrits, attente, désistements), séparées par une colonne « Statut » : le jour J la question est « qui est là ? », pas « quel onglet ? ». La recherche à l'écran ne filtre pas l'export — un fichier amputé sans le dire serait la pire des surprises à l'impression. En tournoi par équipes, deux colonnes s'ajoutent (équipe, ordre du roster).
 **En tant qu'** organisateur, **je veux** consulter et retirer des inscrits **afin de** gérer les désistements signalés hors app.
 - Critères :
   1. Depuis la fiche de gestion (US-1.4), onglet/section « Inscrits » : inscrits, liste d'attente.
@@ -202,7 +202,7 @@ EGIDE est l'application de référence de la scène compétitive francophone War
 > Enregistrement quand la ligne complète perd le focus, sans recharger le tableau (sinon il clignote et le focus saute). Filtre « À saisir / Saisies » avec maintien de la ligne qu'on vient de saisir.
 > Validation : lettres ignorées, au-delà de 100 refusé, au-delà de 20 accepté mais signalé (certains formats montent plus haut), saisie d'un seul côté non enregistrée.
 > La fonction SQL refuse la saisie hors organisateur, sur le bye, hors tournoi en cours, et **fige une ronde dès que la suivante est générée**.
-> Reste à faire : sauvegarde locale des brouillons non confirmés (filet en cas de coupure réseau en pleine saisie).
+> ✅ **Sauvegarde locale livrée (2026-09-03)** — chaque frappe est retenue dans le navigateur, brouillons incomplets compris ; une ligne confirmée est aussitôt oubliée. Deux garde-fous : on mémorise **aussi la valeur serveur** sur laquelle le brouillon a été bâti, et si elle a changé depuis, **le serveur gagne** (à deux postes sur la même ronde, restaurer aveuglément écraserait le score de l'autre) ; et **rien n'est réenvoyé tout seul** — un brouillon retrouvé revient signalé comme tel, l'enregistrement reste un geste de l'organisateur. 10 assertions passées sous Node avec un `localStorage` simulé.
 **En tant qu'** organisateur, **je veux** saisir le résultat de chaque table **afin de** préparer la ronde suivante.
 - Critères :
   1. Pour chaque appariement : saisie des points de partie de chaque joueur ; le vainqueur (ou l'égalité) est déduit automatiquement.
@@ -386,7 +386,7 @@ L'objectif de l'EPIC-3 le prévoyait dès le départ : « les joueurs voient leu
   3. Code invalide → message d'erreur clair.
 - **Taille : M** — **Dépendances :** US-4.2.
 - Notes de livraison : le code se saisit dans six cases (`join-code-input.tsx`) et part dès le 6ᵉ caractère, sans bouton. L'alphabet exclut O/0, I/1 et L, donc `normalizeCode` se contente d'ignorer ce qui n'en fait pas partie — un « ABC-DEF » dicté au téléphone passe tel quel. Sans `maxLength` sur le champ natif : les séparateurs tapés y restent et mangeraient le quota de 6 (le dernier caractère était perdu).
-- Reste à faire : partager le code par lien profond (`egide://equipes/rejoindre?code=…`) plutôt que par texte seul.
+- ✅ **Lien profond livré (2026-09-03)** — `egide://rejoindre/<code>` (chemin plutôt que paramètre : un code fait partie de l'adresse de l'invitation). Le message de partage garde le code en toutes lettres à côté du lien : le lien ne marche que si l'app est installée, et un code se dicte au téléphone. L'écran d'arrivée est **public** — un lien tombe presque toujours sur quelqu'un sans compte, et l'écran d'accueil ne lui dirait pas ce qu'il vient de refuser ; le code est alors **mis de côté** (`use-pending-invite.ts`, même patron hors React que le drapeau invité) et retrouvé dans l'onglet Équipes après l'inscription. **On ne rejoint jamais tout seul** : rejoindre engage (roster, alignement en tournoi, une seule équipe à la fois), c'est un geste, pas l'effet de bord d'un lien cliqué.
 
 ### US-4.4 — Gestion du roster par le capitaine — ✅ Livrée (2026-07-30)
 **En tant que** capitaine, **je veux** gérer mon roster **afin de** garder une équipe à jour.

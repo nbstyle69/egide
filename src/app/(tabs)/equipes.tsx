@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -22,6 +22,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { BottomTabInset, Colors, MaxContentWidth, OnTint, Spacing } from '@/constants/theme';
 import { useMyTeam, useTeams, type TeamMember } from '@/hooks/use-my-team';
+import { usePendingInvite } from '@/hooks/use-pending-invite';
 import { useSession } from '@/hooks/use-session';
 import { CodeLength } from '@/lib/invite-code';
 import { supabase } from '@/lib/supabase';
@@ -30,10 +31,17 @@ import { teamErrorMessage } from '@/lib/teams';
 type Tab = 'mine' | 'directory';
 
 /** Carte « Rejoindre » : l'action la plus fréquente, donc la plus visible. */
-function JoinCard({ onJoined }: { onJoined: () => void }) {
+function JoinCard({
+  onJoined,
+  initialCode,
+}: {
+  onJoined: () => void;
+  /** Code arrivé par lien, retrouvé après l'inscription. */
+  initialCode?: string | null;
+}) {
   const scheme = useColorScheme();
   const colors = Colors[scheme === 'dark' ? 'dark' : 'light'];
-  const [code, setCode] = useState('');
+  const [code, setCode] = useState(initialCode ?? '');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -58,9 +66,13 @@ function JoinCard({ onJoined }: { onJoined: () => void }) {
 
   return (
     <View style={[styles.card, { backgroundColor: colors.backgroundElement }]}>
-      <ThemedText type="smallBold">Tu as reçu un code ?</ThemedText>
+      <ThemedText type="smallBold">
+        {initialCode ? 'Ton invitation t’attend' : 'Tu as reçu un code ?'}
+      </ThemedText>
       <ThemedText type="small" themeColor="textSecondary">
-        Saisis les 6 caractères transmis par le capitaine.
+        {initialCode
+          ? 'Le code du lien que tu as ouvert a été conservé. Vérifie-le, puis rejoins.'
+          : 'Saisis les 6 caractères transmis par le capitaine.'}
       </ThemedText>
       <View style={styles.codeInput}>
         <JoinCodeInput
@@ -123,6 +135,15 @@ export default function EquipesScreen() {
   const userId = session?.user.id;
   const { team, inviteCode, setInviteCode, isCaptain, loading, refresh } = useMyTeam(userId);
   const { teams, loading: directoryLoading, refresh: refreshDirectory } = useTeams();
+  const { pendingCode, consume } = usePendingInvite();
+  // Le code d'un lien ouvert avant d'avoir un compte : on le reprend une fois,
+  // ici, et on l'oublie aussitôt. Une invitation ne resurgit pas trois
+  // semaines plus tard.
+  const [invited, setInvited] = useState<string | null>(null);
+  useEffect(() => {
+    if (!userId || !pendingCode) return;
+    consume().then(setInvited);
+  }, [userId, pendingCode, consume]);
   const [tab, setTab] = useState<Tab>('mine');
   const [openMember, setOpenMember] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -254,7 +275,7 @@ export default function EquipesScreen() {
     // Sans équipe : rejoindre passe devant, créer reste accessible.
     mineContent = (
       <View style={styles.stack}>
-        <JoinCard onJoined={onJoined} />
+        <JoinCard onJoined={onJoined} initialCode={invited} />
         <View style={styles.separator}>
           <View style={[styles.line, { backgroundColor: colors.backgroundSelected }]} />
           <ThemedText type="small" themeColor="textSecondary">
