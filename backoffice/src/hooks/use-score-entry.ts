@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import { clearScoreDraft, loadScoreDrafts, saveScoreDraft } from '../lib/score-drafts';
 import { supabase } from '../lib/supabase';
 import type { Pairing } from './use-rounds';
 
@@ -134,6 +135,12 @@ export function useScoreEntry({ pairings, editable, onSaved, onFailed }: Options
   const [failedIds, setFailedIds] = useState<Set<string>>(new Set());
   /** Lignes dont on a quitté le focus : on peut alors signaler un champ manquant. */
   const [touchedIds, setTouchedIds] = useState<Set<string>>(new Set());
+  /**
+   * Lignes dont la valeur affichée vient du stockage local et non du serveur.
+   * L'écran doit le dire : un champ rempli qui n'est pas enregistré ressemble
+   * trop à un champ rempli qui l'est.
+   */
+  const [restoredIds, setRestoredIds] = useState<Set<string>>(new Set());
 
   const savedRef = useRef<Record<string, Draft>>({});
   const inputRefs = useRef<Map<string, HTMLInputElement>>(new Map());
@@ -141,13 +148,36 @@ export function useScoreEntry({ pairings, editable, onSaved, onFailed }: Options
   draftsRef.current = drafts;
 
   useEffect(() => {
-    const next: Record<string, Draft> = {};
+    const server: Record<string, Draft> = {};
     for (const pairing of pairings) {
-      next[pairing.id] = draftOf(pairing);
+      server[pairing.id] = draftOf(pairing);
     }
-    setDrafts(next);
-    setSaved(JSON.parse(JSON.stringify(next)));
-    savedRef.current = JSON.parse(JSON.stringify(next));
+    // L'état « confirmé » reste celui du serveur, quoi qu'il y ait en local :
+    // c'est lui qui décide si une ligne compte comme saisie.
+    setSaved(JSON.parse(JSON.stringify(server)));
+    savedRef.current = JSON.parse(JSON.stringify(server));
+
+    // Puis on repose par-dessus ce qui avait été tapé sans être confirmé.
+    const stored = loadScoreDrafts();
+    const shown: Record<string, Draft> = { ...server };
+    const retrouves = new Set<string>();
+    for (const pairing of pairings) {
+      const entry = stored[pairing.id];
+      if (!entry) continue;
+      if (!sameDraft(entry.base, server[pairing.id])) {
+        // Le serveur a bougé depuis la frappe : il gagne, le brouillon part.
+        clearScoreDraft(pairing.id);
+        continue;
+      }
+      if (sameDraft(entry.draft, server[pairing.id])) {
+        clearScoreDraft(pairing.id);
+        continue;
+      }
+      shown[pairing.id] = entry.draft;
+      retrouves.add(pairing.id);
+    }
+    setDrafts(shown);
+    setRestoredIds(retrouves);
   }, [pairings]);
 
   const registerInput = useCallback((key: string, element: HTMLInputElement | null) => {
@@ -157,10 +187,22 @@ export function useScoreEntry({ pairings, editable, onSaved, onFailed }: Options
 
   const setField = useCallback((pairingId: string, side: Side, value: string) => {
     const clean = side === 'a' || side === 'b' ? sanitizeScore(value) : sanitizeTactics(value);
-    setDrafts((current) => ({
-      ...current,
-      [pairingId]: { ...current[pairingId], [side]: clean },
-    }));
+    const current = draftsRef.current[pairingId] ?? { a: '', b: '', ta: '', tb: '' };
+    const next: Draft = { ...current, [side]: clean };
+    setDrafts((drafts) => ({ ...drafts, [pairingId]: next }));
+
+    // Retenu à chaque frappe, pas à l'enregistrement : c'est précisément entre
+    // les deux que la saisie se perd.
+    const base = savedRef.current[pairingId] ?? { a: '', b: '', ta: '', tb: '' };
+    if (sameDraft(next, base)) clearScoreDraft(pairingId);
+    else saveScoreDraft(pairingId, next, base);
+    // La ligne redevient une saisie ordinaire dès qu'on y touche.
+    setRestoredIds((current) => {
+      if (!current.has(pairingId)) return current;
+      const copy = new Set(current);
+      copy.delete(pairingId);
+      return copy;
+    });
   }, []);
 
   /** Enregistre une ligne si ses points sont complets et que quelque chose a changé. */
@@ -218,6 +260,14 @@ export function useScoreEntry({ pairings, editable, onSaved, onFailed }: Options
 
       savedRef.current[pairing.id] = { ...draft };
       setSaved((current) => ({ ...current, [pairing.id]: { ...draft } }));
+      // Confirmé : la base redevient seule source de vérité pour cette table.
+      clearScoreDraft(pairing.id);
+      setRestoredIds((current) => {
+        if (!current.has(pairing.id)) return current;
+        const copy = new Set(current);
+        copy.delete(pairing.id);
+        return copy;
+      });
       onSaved(pairing, previous, draft, wasFilled);
     },
     [editable, onSaved, onFailed]
@@ -237,6 +287,7 @@ export function useScoreEntry({ pairings, editable, onSaved, onFailed }: Options
     if (!error) {
       savedRef.current[pairing.id] = { ...value };
       setSaved((current) => ({ ...current, [pairing.id]: { ...value } }));
+      clearScoreDraft(pairing.id);
     }
   }, []);
 
@@ -276,6 +327,7 @@ export function useScoreEntry({ pairings, editable, onSaved, onFailed }: Options
     busyIds,
     failedIds,
     touchedIds,
+    restoredIds,
     setField,
     commit,
     restore,

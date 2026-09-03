@@ -981,6 +981,13 @@ select.input:disabled {
   pointer-events: none;
 }
 
+/* Saisie retrouvée dans le navigateur, pas encore confirmée par la base. Le
+   liseré doré la distingue du vert « enregistré » : la ligne est remplie, mais
+   elle ne compte pas encore. */
+.score-row-restored {
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
 /* ---------- Tactiques ---------- */
 
 /* Volontairement plus petits, creux et pointillés : impossible de les

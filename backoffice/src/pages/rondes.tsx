@@ -193,6 +193,7 @@ export function RondesPage({
     busyIds,
     failedIds,
     touchedIds,
+    restoredIds,
     setField,
     commit,
     restore,
@@ -921,6 +922,19 @@ export function RondesPage({
         {tournament?.type === 'team' ? (
           <TeamEncounters roundId={selectedRound?.id ?? null} editable={editable} />
         ) : null}
+        {/* Des scores tapés mais jamais confirmés ont été retrouvés dans ce
+            navigateur. On le dit avant que l'organisateur ne lise le tableau :
+            un champ rempli qui n'est pas enregistré ressemble trop à un champ
+            rempli qui l'est. Rien n'est renvoyé tout seul — c'est lui qui sait
+            si ces scores sont les bons. */}
+        {restoredIds.size > 0 ? (
+          <div className="banner banner-info" style={{ marginTop: 16 }}>
+            {restoredIds.size === 1
+              ? 'Une saisie n’avait pas été enregistrée : elle a été retrouvée dans ce navigateur et remise dans sa ligne.'
+              : `${restoredIds.size} saisies n’avaient pas été enregistrées : elles ont été retrouvées dans ce navigateur et remises dans leurs lignes.`}{' '}
+            Vérifiez-les, puis quittez chaque ligne pour l’enregistrer.
+          </div>
+        ) : null}
         <table className="table table-static table-lg">
           <thead>
             <tr>
@@ -944,6 +958,7 @@ export function RondesPage({
                 !bye && scored ? 'score-row-done' : '',
                 busyIds.has(pairing.id) ? 'score-row-busy' : '',
                 failedIds.has(pairing.id) ? 'score-row-failed' : '',
+                restoredIds.has(pairing.id) ? 'score-row-restored' : '',
               ]
                 .filter(Boolean)
                 .join(' ');
