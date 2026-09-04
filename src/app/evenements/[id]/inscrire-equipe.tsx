@@ -127,7 +127,10 @@ export default function InscrireEquipeScreen() {
   }
 
   async function submit() {
-    if (!supabase || !id || selected.length !== teamSize) return;
+    // Un roster partiel s'enregistre désormais (US-7.11) : l'équipe s'engage,
+    // les places restantes se prennent ensuite. Seul le dépassement est
+    // impossible, et `toggle` l'empêche déjà.
+    if (!supabase || !id) return;
     setBusy(true);
     setError(null);
     const { error: dbError } = await supabase.rpc(
@@ -285,8 +288,8 @@ export default function InscrireEquipeScreen() {
             ) : (
               <ThemedText type="small" themeColor="textSecondary">
                 {selected.length === 0
-                  ? `Choisis ${teamSize} joueurs parmi les ${team.members.length} membres de ton équipe.`
-                  : `Encore ${remaining} joueur${remaining > 1 ? 's' : ''} à choisir.`}
+                  ? `Choisis jusqu’à ${teamSize} joueurs parmi les ${team.members.length} membres de ton équipe — ou engage l’équipe sans personne : chacun prendra sa place.`
+                  : `Encore ${remaining} place${remaining > 1 ? 's' : ''}. Tu peux la laisser à qui la prendra.`}
               </ThemedText>
             )}
           </View>
@@ -312,7 +315,9 @@ export default function InscrireEquipeScreen() {
               </ThemedText>
             </View>
             <ThemedText type="small">
-              Les {teamSize} joueurs choisis seront inscrits à ce tournoi.
+              Les joueurs que tu choisis ici seront inscrits à ce tournoi. Les places que tu
+              laisses vides restent ouvertes : un membre de l’équipe peut les prendre lui-même
+              depuis la fiche du tournoi, et tu peux l’y appeler.
             </ThemedText>
             <ThemedText type="small">
               Chacun devra déclarer sa faction, et sa liste d’armée si l’organisation la demande.
@@ -338,7 +343,8 @@ export default function InscrireEquipeScreen() {
           ) : null}
           {!complete ? (
             <ThemedText type="small" themeColor="textSecondary" style={styles.centeredText}>
-              Choisis encore {remaining} joueur{remaining > 1 ? 's' : ''} pour inscrire l’équipe.
+              {remaining} place{remaining > 1 ? 's' : ''} resteront à pourvoir. Ton équipe est
+              engagée dès maintenant : elle ne perd pas sa place pendant que tu recrutes.
             </ThemedText>
           ) : waitlist ? (
             <ThemedText type="small" themeColor="textSecondary" style={styles.centeredText}>
@@ -347,26 +353,23 @@ export default function InscrireEquipeScreen() {
           ) : null}
           <Pressable
             onPress={submit}
-            disabled={!complete || busy}
+            disabled={busy}
             accessibilityRole="button"
             style={({ pressed }) => [
               styles.primaryButton,
-              {
-                backgroundColor: complete ? colors.tint : colors.backgroundSelected,
-                opacity: pressed ? 0.8 : 1,
-              },
+              { backgroundColor: colors.tint, opacity: pressed || busy ? 0.8 : 1 },
             ]}>
             {busy ? (
-              <ActivityIndicator color={complete ? OnTint[mode] : colors.textSecondary} />
+              <ActivityIndicator color={OnTint[mode]} />
             ) : (
-              <ThemedText
-                type="smallBold"
-                style={{ color: complete ? OnTint[mode] : colors.textSecondary }}>
+              <ThemedText type="smallBold" style={{ color: OnTint[mode] }}>
                 {alreadyRegistered
                   ? 'Enregistrer le roster'
                   : waitlist
                     ? 'Mettre l’équipe en liste d’attente'
-                    : `Inscrire l’équipe (${teamSize} joueurs)`}
+                    : complete
+                      ? `Inscrire l’équipe (${teamSize} joueurs)`
+                      : `Engager l’équipe (${selected.length} sur ${teamSize})`}
               </ThemedText>
             )}
           </Pressable>

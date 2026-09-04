@@ -27,7 +27,7 @@ deux côtés (`lib/supabase.ts`, `lib/tournaments.ts`, `lib/ordinal.ts`, `hooks/
 
 ### Règle d'architecture centrale
 
-**La logique métier vit dans Postgres, pas dans le client.** 52 migrations numérotées et
+**La logique métier vit dans Postgres, pas dans le client.** 53 migrations numérotées et
 **immuables** dans `supabase/migrations/` — pour changer quoi que ce soit, on **ajoute** une
 migration `00NN_description.sql`, on n'édite jamais une existante. Les fonctions sont en
 `security definer` avec des `grant`/`revoke` explicites, appelées via `supabase.rpc(...)`.
@@ -54,7 +54,7 @@ Fonctions clés : `register_for_tournament`, `promote_waitlist`, `start_tourname
 ## 4. État d'avancement
 
 **Livré et testé : EPIC-1 à 6 (MVP phase 1), EPIC-12 (administration) et EPIC-9 (profil enrichi).**
-Migrations 0001 à 0052.
+Migrations 0001 à 0053.
 
 | EPIC | Contenu | État |
 |---|---|---|
@@ -165,7 +165,9 @@ avec son troisième mode de barre latérale sur les routes `/admin/*`.
     tout de suite, le capitaine pouvant le retirer** tant que le tournoi n'a pas
     démarré — ni validation préalable, qui laisserait un capitaine injoignable
     bloquer son équipe, ni premier arrivé premier servi, qui lui retirerait
-    l'alignement dont l'appariement de l'US-7.7 dépend. **Non encore codé.**
+    l'alignement dont l'appariement de l'US-7.7 dépend. **Livré le 2026-09-04,
+    migration 0053** (`join_team_roster`, `remove_from_roster`,
+    `invite_to_roster`, `my_tournament_roster`), `send-push` en v6.
 
 17. **Mieux vaut ne rien montrer que raconter une histoire fausse.** Appliqué trois fois :
     un inscrit jamais pointé n'apparaît pas dans son historique ; un tournoi en cours ne

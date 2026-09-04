@@ -221,6 +221,33 @@ async function compose(
     }));
   }
 
+  if (kind === 'roster_invite') {
+    // Un capitaine appelle un de ses joueurs sur un tournoi (US-7.11). La
+    // notification est tout ce qu'il y a : la place, c'est le joueur qui la
+    // prend, depuis la fiche du tournoi qu'ouvre le tap.
+    const { data: t } = await admin
+      .from('tournaments')
+      .select('id, name, city, event_date')
+      .eq('id', payload.tournament_id)
+      .maybeSingle();
+    if (!t) return [];
+    const { data: team } = await admin
+      .from('teams')
+      .select('name')
+      .eq('id', payload.team_id)
+      .maybeSingle();
+    const teamName = (team as { name: string } | null)?.name ?? 'ton équipe';
+    return [
+      {
+        profile_id: payload.player_id,
+        title: t.name,
+        // On ne dit pas « tu es inscrit » : justement, il ne l'est pas encore.
+        body: `${teamName} t’appelle pour ce tournoi à ${t.city}, le ${frDate(t.event_date)}. Prends ta place.`,
+        data: { url: `/evenements/${t.id}` },
+      },
+    ];
+  }
+
   if (kind === 'tournament_cancelled') {
     const { data: t } = await admin
       .from('tournaments')

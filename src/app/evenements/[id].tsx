@@ -19,6 +19,7 @@ import { PreparationCard, type FactionLock } from '@/components/preparation-card
 import { JourJCard } from '@/components/jour-j-card';
 import { MetaRow } from '@/components/meta-row';
 import { MonParcours } from '@/components/mon-parcours';
+import { RosterCard } from '@/components/roster-card';
 import { PlayerRow } from '@/components/player-row';
 import { StatusBadge } from '@/components/status-badge';
 import { ThemedText } from '@/components/themed-text';
@@ -38,6 +39,7 @@ import { useArmyList } from '@/hooks/use-army-list';
 import { useFactionDeclaration } from '@/hooks/use-faction-declaration';
 import { useMyEncounter } from '@/hooks/use-my-encounter';
 import { useMyPairing } from '@/hooks/use-my-pairing';
+import { useTournamentRoster } from '@/hooks/use-tournament-roster';
 import { useMyTeam } from '@/hooks/use-my-team';
 import { useProfile } from '@/hooks/use-profile';
 import { useSession } from '@/hooks/use-session';
@@ -81,6 +83,18 @@ export default function EvenementDetailScreen() {
     isFull,
   } = useTournamentDetail(id, session?.user.id);
 
+  // Le roster de mon équipe pour ce tournoi (US-7.11) : l'équipe s'engage,
+  // puis chacun prend sa place. La base dit elle-même si le geste est possible.
+  const {
+    roster: myRoster,
+    busy: rosterBusy,
+    error: rosterError,
+    refresh: refreshRoster,
+    join: joinRoster,
+    remove: removeFromRoster,
+    invite: inviteToRoster,
+  } = useTournamentRoster(id, session?.user.id);
+
   // Le déroulé du jour J : ronde en cours, mon appariement, mes résultats.
   const {
     currentRound,
@@ -104,11 +118,13 @@ export default function EvenementDetailScreen() {
   // Ma liste d'armée, chargée seulement si j'ai une inscription.
   const { list: armyList, refresh: refreshArmyList } = useArmyList(myRegistration?.id);
 
-  // Au retour de l'écran de saisie, le statut de la liste a pu changer.
+  // Au retour de l'écran de saisie, le statut de la liste a pu changer — et au
+  // retour de la composition du roster, le roster aussi.
   useFocusEffect(
     useCallback(() => {
       refreshArmyList();
-    }, [refreshArmyList])
+      refreshRoster();
+    }, [refreshArmyList, refreshRoster])
   );
 
   // Faction déclarée pour ce tournoi : l'écriture ne rafraîchit pas la fiche
@@ -405,10 +421,32 @@ export default function EvenementDetailScreen() {
             </ThemedText>
           </Pressable>
         );
+      } else if (myTeam && myRoster.engaged) {
+        // Mon équipe est engagée sans moi : depuis l'US-7.11, ce n'est plus une
+        // impasse. La place se prend dans la carte du roster, juste en dessous
+        // — inutile de dupliquer le bouton ici, deux boutons pour un geste
+        // finiraient par se contredire.
+        message = (
+          <ThemedText type="small" themeColor="textSecondary" style={styles.ctaMessage}>
+            {myRoster.can_join
+              ? `${myRoster.team_name} est engagée : il reste ${myRoster.free} place${
+                  (myRoster.free ?? 0) > 1 ? 's' : ''
+                }. Prends la tienne ci-dessous.`
+              : `${myRoster.team_name} est engagée, et son roster est complet.`}
+          </ThemedText>
+        );
+        button = (
+          <Pressable
+            style={secondaryStyle}
+            onPress={() => router.push({ pathname: '/equipes/[id]', params: { id: myTeam.id } })}>
+            <ThemedText>Voir mon équipe</ThemedText>
+          </Pressable>
+        );
       } else if (myTeam) {
         message = (
           <ThemedText type="small" themeColor="textSecondary" style={styles.ctaMessage}>
-            Seul le capitaine inscrit l’équipe à un tournoi.
+            Seul le capitaine engage l’équipe sur un tournoi. Une fois engagée, tu pourras
+            prendre ta place toi-même.
           </ThemedText>
         );
         button = (
@@ -812,6 +850,27 @@ export default function EvenementDetailScreen() {
               </ThemedText>
             </MetaRow>
           </View>
+
+          {/* Le roster de mon équipe : les places prises et les places vides.
+              Il vient avant la carte Participants — on regarde d'abord où en
+              est son équipe, ensuite le champ des autres. */}
+          {isTeamTournament ? (
+            <RosterCard
+              roster={myRoster}
+              busy={rosterBusy}
+              error={rosterError}
+              onJoin={async () => {
+                await joinRoster();
+                refresh();
+              }}
+              onRemove={async (playerId) => {
+                await removeFromRoster(playerId);
+                refresh();
+              }}
+              onInvite={inviteToRoster}
+              editable={tournament.status === 'open'}
+            />
+          ) : null}
 
           {/* Carte Participants */}
           <View style={[styles.card, { backgroundColor: colors.backgroundElement }]}>
