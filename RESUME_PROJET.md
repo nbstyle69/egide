@@ -154,6 +154,19 @@ avec son troisième mode de barre latérale sur les routes `/admin/*`.
     60 % couvre en réalité de 15 % à 95 % : il n'informe pas, il fait croire à une mesure.
     Les statistiques joueur n'affichent que des entiers ; le taux de victoire est renvoyé à
     l'EPIC-11 (stats méta), où l'échantillon est celui de la communauté.
+18. **On ne s'inscrit pas quelqu'un, on le lui propose** (2026-09-04, US-7.11).
+    Le modèle livré laisse le capitaine engager trois joueurs d'un coup : un joueur
+    se retrouve inscrit sans l'avoir demandé, et la 0043 ne fait que lui ouvrir une
+    sortie. Le roster d'un tournoi se remplira désormais **à deux mains** — le
+    capitaine invite, ou le membre prend lui-même une place libre. Deux points
+    tranchés avec : **la place se prend à l'engagement** (une équipe qui recrute ne
+    perd pas sa place pendant qu'elle recrute ; la date limite de complétion est le
+    pointage du jour J, déjà prévu par l'hypothèse 6), et **le volontaire compte
+    tout de suite, le capitaine pouvant le retirer** tant que le tournoi n'a pas
+    démarré — ni validation préalable, qui laisserait un capitaine injoignable
+    bloquer son équipe, ni premier arrivé premier servi, qui lui retirerait
+    l'alignement dont l'appariement de l'US-7.7 dépend. **Non encore codé.**
+
 17. **Mieux vaut ne rien montrer que raconter une histoire fausse.** Appliqué trois fois :
     un inscrit jamais pointé n'apparaît pas dans son historique ; un tournoi en cours ne
     reçoit pas de rang ; `profiles.faction_favorite` n'est jamais substituée à la faction

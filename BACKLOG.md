@@ -533,6 +533,7 @@ L'agent `ux-ui` voulait l'appariement **sur un seul appareil** (celui de l'organ
   > **9 assertions SQL passées** : non-capitaine refusé, roster de mauvaise taille, joueur hors équipe nommé, inscription valide à 3 positions distinctes, capacité atteinte → équipe entière en attente, taille figée, retrait qui promeut l'équipe suivante en entier, joueur déjà inscrit en individuel nommé, `anon` aveugle sur le roster mais comptant les équipes.
 - **US-7.3** Le capitaine inscrit son équipe depuis l'app mobile — **M** — dép. US-7.2. **Avis `ux-ui` rendu.** *(ex-7.2, moitié écran)* — ✅ **Livrée (2026-08-27)**
   > Écran `evenements/[id]/inscrire-equipe.tsx` : jauge « 2 joueurs sur 3 », lignes de sélection à 64 px, **l'ordre de sélection fixe l'ordre du roster** (il servira d'appariement de départ en US-7.5). Un tap au-delà de la taille **refuse et dit pourquoi** au lieu de remplacer en douce : debout, un échange silencieux ne se voit pas.
+  > ⚠️ **Amendée par l'US-7.11 (2026-09-04)** : le capitaine ne compose plus obligatoirement le roster entier d'un coup. Cet écran reste son chemin le plus court, mais il cesse d'être le seul.
   > **Aucune faction favorite affichée**, même ici : le capitaine ne déclare pas à la place de ses joueurs. La règle de l'US-9.3 tient jusque dans un écran qu'elle n'avait pas prévu.
   > Six états remplacent l'écran entier — pas d'équipe, pas capitaine, équipe trop petite (le plus probable), inscriptions closes, tournoi non-équipe, chargement — chacun avec le geste suivant offert. Les refus de la base sont traduits **en nommant la personne** (« Nyssa est déjà inscrit à ce tournoi. Il doit se retirer lui-même… »).
   > Fiche du tournoi : barre d'action à quatre branches équipe, carte « Équipes engagées » avec les rosters et la puce « ton équipe », liste d'attente **par équipe** (une équipe attend en entier), jauge comptée en équipes.
@@ -577,6 +578,28 @@ L'agent `ux-ui` voulait l'appariement **sur un seul appareil** (celui de l'organ
   > 3 assertions SQL passées.
   > Dans un tournoi par équipes, les appariements sont **négociés par les capitaines**, pas produits par le système suisse. Un « 3e sur 24 » y serait un rang obtenu sur des adversaires choisis : le classement individuel existe, mais **sans podium et sans « tu termines Ne »**. C'est « mieux vaut ne rien montrer que raconter une histoire fausse » appliqué à un rang.
 - **US-7.10** *(optionnelle, à arbitrer)* Listes visibles de l'équipe adverse — **M** — dép. US-7.7 et arbitrage du porteur.
+
+- **US-7.11** Le roster de tournoi se remplit **à deux mains** — **M** — dép. US-7.2, US-7.3. 📋 **Spécifiée le 2026-09-04 par le porteur, à faire.**
+  > **Ce qui ne va pas aujourd'hui.** `register_team(tournoi, joueurs[])` exige **exactement** `team_size` joueurs, désignés par le seul capitaine, en une seule fois. Un joueur se retrouve donc engagé dans un tournoi **sans l'avoir demandé** — la migration 0043 l'admet noir sur blanc (« un joueur d'un roster est inscrit sans l'avoir demandé : son capitaine l'a engagé ») et se contente de lui ouvrir une porte de sortie. On répare après coup ce qu'on aurait pu ne pas casser.
+  >
+  > **Ce qu'on veut.** L'équipe s'engage d'abord ; son roster **pour ce tournoi** se remplit ensuite, par deux chemins qui mènent au même endroit : le **capitaine invite** un de ses membres, ou le **membre prend lui-même** une place libre depuis la fiche du tournoi. On propose, la personne accepte — au lieu d'engager puis de laisser se dédire.
+  >
+  > **Deux arbitrages du porteur (2026-09-04), à ne pas re-litiger :**
+  > 1. **La place se prend à l'engagement**, roster encore incomplet. Une équipe qui recrute ne doit pas perdre sa place pendant qu'elle recrute. La contrepartie — des places bloquées par des équipes fantômes — est déjà tenue par l'hypothèse 6 : le **pointage du jour J** est la date limite de complétion, et une équipe incomplète y est pointable au prix d'un forfait 15-5 sur la table manquante. Le modèle n'a donc rien à inventer pour ça.
+  > 2. **Le volontaire compte immédiatement, et le capitaine peut le retirer** tant que le tournoi n'a pas démarré. Ni validation préalable (un capitaine injoignable bloquerait son équipe), ni premier-arrivé-premier-servi (le capitaine perdrait son alignement, et l'appariement de l'US-7.7 suppose précisément un capitaine qui le maîtrise).
+  >
+  > **Critères :**
+  > 1. `register_team` accepte un roster **partiel**, de 0 à `team_size` joueurs. L'équipe est inscrite — ou en liste d'attente — dès l'engagement, comme aujourd'hui.
+  > 2. Un membre de l'équipe voit, sur la fiche d'un tournoi où son équipe est engagée, les places restantes, et peut en prendre une. Roster complet : la place n'est plus offerte, et l'écran dit pourquoi.
+  > 3. Le capitaine peut inviter nommément un membre. L'invitation passe par la chaîne push existante (un `kind` de plus dans `push_outbox`), et le tap ouvre la fiche du tournoi.
+  > 4. Le capitaine retire un joueur du roster tant que le tournoi n'a pas démarré ; la place redevient libre.
+  > 5. Un joueur qui se retire lui-même (`withdraw_from_tournament`, 0043) libère sa place de la même façon — un seul chemin de sortie, pas deux.
+  > 6. Un joueur **déjà inscrit à ce tournoi**, seul ou avec une autre équipe, ne peut pas prendre de place : la règle `PLAYER_ALREADY_REGISTERED` reste, et continue de nommer le fautif.
+  > 7. Les deux écrans affichent le même décompte (« 2 joueurs sur 3 »), capitaine comme membre.
+  >
+  > **Le piège à ouvrir en premier :** la taille exacte n'est pas gardée par une contrainte de table mais par **`register_team` et `update_team_roster`**, qui lèvent toutes deux `ROSTER_SIZE` dès que le tableau n'a pas exactement `team_size` entrées. Les deux sont à rouvrir, sinon un roster partiel est refusé en base avant même d'atteindre l'écran. (À ne pas confondre avec `guard_team_size`, qui fige la taille d'équipe **du tournoi** dès la première inscription — celle-là reste.)
+  >
+  > **Reste à trancher au moment de coder :** l'ordre du roster fixe l'appariement de départ (US-7.3) — si les places se prennent dans le désordre, qui décide de l'ordre final, le capitaine ou l'ordre d'arrivée ?
 
 **Refusé pour cet EPIC, noté pour plus tard :** chat de rencontre (c'est l'EPIC-8 en entier), minuterie automatique d'appariement (exige cron + temps réel, là où l'organisateur règle le cas en marchant trois mètres), bans de scénarios et choix de côté de table (raffinements ETC qui multiplient les états de l'écran le plus complexe), équipes de tailles inégales, joueur « libre » affecté à une équipe, circuit et ELO par équipes (EPIC-11 — et l'ELO suppose des appariements non négociés), push « c'est à ton tour de poser » (l'EPIC-6 n'est toujours pas vérifié en réception : ne pas empiler dessus).
 
