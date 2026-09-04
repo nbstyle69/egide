@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 
+import { flushPushQueue } from '@/lib/push';
 import { supabase } from '@/lib/supabase';
 
 /** Une place occupée du roster de mon équipe pour ce tournoi. */
@@ -73,6 +74,13 @@ export function useTournamentRoster(tournamentId: string | undefined, userId: st
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /**
+   * Ce que le geste vient de faire, quand il ne se voit pas autrement.
+   * Prendre une place ou en retirer un joueur se lit dans le roster ;
+   * **appeler quelqu'un ne change rien à l'écran** — sans un mot, le bouton
+   * paraît mort et on le presse trois fois.
+   */
+  const [notice, setNotice] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     if (!supabase || !tournamentId || !userId) {
@@ -98,6 +106,7 @@ export function useTournamentRoster(tournamentId: string | undefined, userId: st
       if (!supabase || !tournamentId) return false;
       setBusy(true);
       setError(null);
+      setNotice(null);
       const { error: dbError } = await supabase.rpc(fn, {
         p_tournament_id: tournamentId,
         ...params,
@@ -122,9 +131,30 @@ export function useTournamentRoster(tournamentId: string | undefined, userId: st
     [call]
   );
   const invite = useCallback(
-    (playerId: string) => call('invite_to_roster', { p_player_id: playerId }),
+    async (playerId: string, pseudo: string) => {
+      const ok = await call('invite_to_roster', { p_player_id: playerId });
+      if (!ok) return false;
+      // Convention du projet : le client vide la file après toute action qui y
+      // dépose un événement. Sans cet appel, l'invitation attendait qu'une
+      // autre action de l'app la pousse — un délai que personne n'explique.
+      flushPushQueue();
+      setNotice(`${pseudo} a été appelé. Il verra la place et la prendra lui-même.`);
+      return true;
+    },
     [call]
   );
 
-  return { roster: state, loading, busy, error, setError, refresh, join, remove, invite };
+  return {
+    roster: state,
+    loading,
+    busy,
+    error,
+    setError,
+    notice,
+    setNotice,
+    refresh,
+    join,
+    remove,
+    invite,
+  };
 }

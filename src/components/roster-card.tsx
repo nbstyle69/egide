@@ -1,9 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, useColorScheme, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import {
   Colors,
+  GreenBackground,
   GreenColor,
   OnTint,
   RedBackground,
@@ -18,9 +20,11 @@ type Props = {
   roster: TournamentRoster;
   busy: boolean;
   error: string | null;
+  /** Ce que le dernier geste a fait, quand il ne se voit pas dans le roster. */
+  notice: string | null;
   onJoin: () => void;
   onRemove: (playerId: string) => void;
-  onInvite: (playerId: string) => void;
+  onInvite: (playerId: string, pseudo: string) => void;
   /** Après le lancement, le roster se lit mais ne se change plus. */
   editable: boolean;
 };
@@ -34,11 +38,28 @@ type Props = {
  * joueur prend la place lui-même. La carte montre donc **les places vides
  * autant que les pleines** : c'est en les voyant qu'on les prend.
  */
-export function RosterCard({ roster, busy, error, onJoin, onRemove, onInvite, editable }: Props) {
+export function RosterCard({
+  roster,
+  busy,
+  error,
+  notice,
+  onJoin,
+  onRemove,
+  onInvite,
+  editable,
+}: Props) {
   const scheme = useColorScheme();
   const mode = scheme === 'dark' ? 'dark' : 'light';
   const colors = Colors[mode];
+  /**
+   * Qui a été appelé pendant cette séance. On ne le lit pas de la base : la
+   * file de notifications se vide, et un état qui disparaît au vidage
+   * mentirait plus qu'il n'informerait. Ici, la mémoire de l'écran suffit —
+   * elle empêche exactement ce qu'elle doit empêcher : presser trois fois.
+   */
+  const [called, setCalled] = useState<string[]>([]);
 
+  // Tous les hooks avant tout retour conditionnel (piège 7 du projet).
   if (!roster.has_team || !roster.engaged) return null;
 
   const size = roster.team_size ?? 0;
@@ -118,6 +139,15 @@ export function RosterCard({ roster, busy, error, onJoin, onRemove, onInvite, ed
         </View>
       ) : null}
 
+      {/* Un geste qui ne change rien à l'écran doit se dire lui-même. */}
+      {notice ? (
+        <View style={[styles.banner, { backgroundColor: GreenBackground[mode] }]}>
+          <ThemedText type="small" style={{ color: GreenColor[mode] }}>
+            {notice}
+          </ThemedText>
+        </View>
+      ) : null}
+
       {/* Le geste du joueur : personne ne l'inscrit à sa place. */}
       {roster.can_join && editable ? (
         <Pressable
@@ -155,30 +185,42 @@ export function RosterCard({ roster, busy, error, onJoin, onRemove, onInvite, ed
             Appeler un joueur de l’équipe. Il recevra une notification et prendra la place
             lui-même.
           </ThemedText>
-          {bench.map((member) => (
-            <View key={member.player_id} style={styles.row}>
-              <ThemedText type="small" style={styles.rowText}>
-                {member.pseudo}
-              </ThemedText>
-              <Pressable
-                onPress={() => onInvite(member.player_id)}
-                disabled={busy}
-                accessibilityRole="button"
-                accessibilityLabel={`Appeler ${member.pseudo}`}
-                style={({ pressed }) => [
-                  styles.inviteButton,
-                  {
-                    backgroundColor: TintBackground[mode],
-                    borderColor: TintBorder[mode],
-                    opacity: pressed || busy ? 0.6 : 1,
-                  },
-                ]}>
-                <ThemedText type="small" style={{ color: colors.tint }}>
-                  Appeler
+          {bench.map((member) => {
+            const alreadyCalled = called.includes(member.player_id);
+            return (
+              <View key={member.player_id} style={styles.row}>
+                <ThemedText type="small" style={styles.rowText}>
+                  {member.pseudo}
                 </ThemedText>
-              </Pressable>
-            </View>
-          ))}
+                <Pressable
+                  onPress={() => {
+                    setCalled((current) => [...current, member.player_id]);
+                    onInvite(member.player_id, member.pseudo);
+                  }}
+                  disabled={busy || alreadyCalled}
+                  accessibilityRole="button"
+                  accessibilityLabel={
+                    alreadyCalled ? `${member.pseudo} a déjà été appelé` : `Appeler ${member.pseudo}`
+                  }
+                  style={({ pressed }) => [
+                    styles.inviteButton,
+                    {
+                      backgroundColor: alreadyCalled
+                        ? colors.backgroundSelected
+                        : TintBackground[mode],
+                      borderColor: alreadyCalled ? colors.backgroundSelected : TintBorder[mode],
+                      opacity: pressed || busy ? 0.6 : 1,
+                    },
+                  ]}>
+                  <ThemedText
+                    type="small"
+                    style={{ color: alreadyCalled ? colors.textSecondary : colors.tint }}>
+                    {alreadyCalled ? 'Appelé' : 'Appeler'}
+                  </ThemedText>
+                </Pressable>
+              </View>
+            );
+          })}
         </View>
       ) : null}
     </View>

@@ -89,6 +89,7 @@ export default function EvenementDetailScreen() {
     roster: myRoster,
     busy: rosterBusy,
     error: rosterError,
+    notice: rosterNotice,
     refresh: refreshRoster,
     join: joinRoster,
     remove: removeFromRoster,
@@ -859,6 +860,7 @@ export default function EvenementDetailScreen() {
               roster={myRoster}
               busy={rosterBusy}
               error={rosterError}
+              notice={rosterNotice}
               onJoin={async () => {
                 await joinRoster();
                 refresh();
@@ -867,7 +869,7 @@ export default function EvenementDetailScreen() {
                 await removeFromRoster(playerId);
                 refresh();
               }}
-              onInvite={inviteToRoster}
+              onInvite={(playerId, pseudo) => inviteToRoster(playerId, pseudo)}
               editable={tournament.status === 'open'}
             />
           ) : null}
