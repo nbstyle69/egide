@@ -215,9 +215,22 @@ export function RondesPage({
       // Pas de rechargement ici : l'état confirmé suffit, et recharger
       // ferait clignoter le tableau en pleine saisie.
     },
-    onFailed: (pairing, retry) => {
+    onFailed: (pairing, retry, message) => {
+      // Une table qui n'existe plus n'est pas une panne de réseau : la
+      // rencontre vient d'être réappariée, et réessayer se cognerait au même
+      // mur. Le seul geste utile est de recharger.
+      if (message.includes('Appariement introuvable')) {
+        setToast({
+          message: `La table ${pairing.table_number} n’existe plus : cette rencontre vient d’être réappariée. Rechargez la page pour voir les tables à jour.`,
+          variant: 'danger',
+          action: { label: 'Recharger', onPress: () => window.location.reload() },
+        });
+        return;
+      }
       setToast({
-        message: `Score de la table ${pairing.table_number} non enregistré. Vérifiez votre connexion.`,
+        message: message
+          ? `Score de la table ${pairing.table_number} non enregistré : ${message}`
+          : `Score de la table ${pairing.table_number} non enregistré. Vérifiez votre connexion.`,
         variant: 'danger',
         action: { label: 'Réessayer', onPress: retry },
       });
@@ -922,7 +935,11 @@ export function RondesPage({
       ) : (
         <>
         {tournament?.type === 'team' ? (
-          <TeamEncounters roundId={selectedRound?.id ?? null} editable={editable} />
+          <TeamEncounters
+            roundId={selectedRound?.id ?? null}
+            editable={editable}
+            onTablesChanged={refresh}
+          />
         ) : null}
         {/* Des scores tapés mais jamais confirmés ont été retrouvés dans ce
             navigateur. On le dit avant que l'organisateur ne lise le tableau :

@@ -17,6 +17,14 @@ type Props = {
   roundId: string | null;
   /** Lecture seule dès que le tournoi n'est plus en cours, ou en supervision. */
   editable: boolean;
+  /**
+   * Ouvrir un appariement **supprime les tables** de la rencontre (0046), et
+   * les compléter d'office les recrée. Le tableau des scores de la page devient
+   * donc faux à cet instant précis : sans ce signal, l'organisateur saisit un
+   * score sur une table qui n'existe plus, et la base répond « Appariement
+   * introuvable » sans que rien à l'écran ne l'ait laissé prévoir.
+   */
+  onTablesChanged?: () => void;
 };
 
 function readableError(message: string): string {
@@ -43,7 +51,7 @@ function readableError(message: string): string {
  * Aucune minuterie : elle exigerait un cron, une horloge partagée et du temps
  * réel, pour un problème que l'organisateur règle en marchant trois mètres.
  */
-export function TeamEncounters({ roundId, editable }: Props) {
+export function TeamEncounters({ roundId, editable, onTablesChanged }: Props) {
   const [rows, setRows] = useState<Encounter[]>([]);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
@@ -77,6 +85,9 @@ export function TeamEncounters({ roundId, editable }: Props) {
       return;
     }
     refresh();
+    // La page doit recharger ses tables : les siennes viennent d'être
+    // supprimées ou recréées sous elle.
+    onTablesChanged?.();
   }
 
   if (rows.length === 0) return null;

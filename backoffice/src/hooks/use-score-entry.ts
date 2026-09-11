@@ -104,7 +104,11 @@ type Options = {
   pairings: Pairing[];
   editable: boolean;
   onSaved: (pairing: Pairing, previous: Draft, next: Draft, wasFilled: boolean) => void;
-  onFailed: (pairing: Pairing, retry: () => void) => void;
+  /**
+   * `message` est celui de la base, tel quel. L'écran décide quoi en faire —
+   * mais il ne doit plus inventer une panne de réseau à sa place.
+   */
+  onFailed: (pairing: Pairing, retry: () => void, message: string) => void;
 };
 
 function draftOf(pairing: Pairing): Draft {
@@ -251,10 +255,14 @@ export function useScoreEntry({ pairings, editable, onSaved, onFailed }: Options
             return copy;
           });
         }, 4000);
-        onFailed(pairing, () => {
-          setDrafts((current) => ({ ...current, [pairing.id]: { ...draft } }));
-          commit(pairing);
-        });
+        onFailed(
+          pairing,
+          () => {
+            setDrafts((current) => ({ ...current, [pairing.id]: { ...draft } }));
+            commit(pairing);
+          },
+          (error.message ?? '').trim()
+        );
         return;
       }
 
