@@ -568,6 +568,8 @@ export function CheckInPage({
       {launchOpen && tournament ? (
         <LaunchTournamentModal
           tournamentId={tournament.id}
+          type={tournament.type}
+          teamSize={tournament.team_size}
           presentCount={presentCount}
           absentNames={registered
             .filter((r) => !presence[r.id])

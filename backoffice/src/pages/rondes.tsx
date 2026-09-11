@@ -541,6 +541,8 @@ export function RondesPage({
         {launchOpen ? (
           <LaunchTournamentModal
             tournamentId={tournament.id}
+            type={tournament.type}
+            teamSize={tournament.team_size}
             presentCount={presentCount}
             absentNames={registered
               .filter((r) => r.status === 'registered')
