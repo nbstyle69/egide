@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Ce projet tourne sur **Expo SDK 54** (voir `package.json` : `expo@^54.0.0`, `react-native@0.81`, `react@19.1`). Les API Expo changent souvent d'une version à l'autre — consulte la doc versionnée **https://docs.expo.dev/versions/v54.0.0/** avant d'écrire du code qui touche à un module `expo-*`.
 
-**Le SDK 54 est imposé, pas subi** : l'App Store du porteur plafonne Expo Go à la 54.0.2. Ne jamais remonter de SDK sans son accord explicite.
+**Le SDK 54 est imposé, pas subi** : l'App Store du porteur plafonne Expo Go à la 54.0.2. Ne jamais remonter de SDK sans son accord explicite. `AGENTS.md` à la racine répète cette seule consigne pour les autres outils : si la version change un jour, mettre à jour les deux fichiers.
 
 ## Contexte projet
 
@@ -31,7 +31,9 @@ Le dépôt contient **deux front-ends** qui partagent la même base Supabase (m�
 | **App mobile** (racine) | Le produit : joueurs et organisateurs sur iOS/Android/web | Expo + expo-router | `src/` |
 | **Backoffice** | Console web des organisateurs (check-in, saisie scores, rondes, circuits) et console d'administration | Vite + React 19 + react-router-dom v7 | `backoffice/` |
 
-Les deux sont des projets npm **séparés** (chacun son `package.json` et son `node_modules`). Le backoffice est exclu du `tsconfig.json` racine. Du code proche existe en double des deux côtés (`lib/supabase.ts`, `lib/tournaments.ts`, `lib/ordinal.ts`, `lib/push.ts`, `hooks/use-session.ts`, `hooks/use-standings.ts`, `components/status-badge.tsx`) — c'est volontaire : **une modification métier doit souvent être répercutée dans les deux**.
+Les deux sont des projets npm **séparés** (chacun son `package.json` et son `node_modules`). Le backoffice et `supabase/functions/` (Deno, pas Node) sont exclus du `tsconfig.json` racine. Du code proche existe en double des deux côtés (`lib/supabase.ts`, `lib/tournaments.ts`, `lib/ordinal.ts`, `lib/push.ts`, `lib/regions.ts`, `hooks/use-session.ts`, `hooks/use-standings.ts`, `hooks/use-team-standings.ts`, `components/status-badge.tsx`) — c'est volontaire : **une modification métier doit souvent être répercutée dans les deux**.
+
+Cas particulier des **factions** : le mobile les lit dans `src/lib/factions.ts` (liste statique), le backoffice dans la table `public.factions` (migration 0038, hook `use-factions.ts`). Le fichier TS et la table sont déclarés **miroirs** : une faction ajoutée, renommée ou retirée touche les deux dans le même commit.
 
 ## Commandes
 
@@ -43,13 +45,16 @@ npm run web        # navigateur, port 8081 — le plus rapide pour tester
 npm run android    # émulateur Android
 npm run ios        # simulateur iOS
 npm run lint       # expo lint
+npx tsc --noEmit   # vérification de types (les routes typées viennent de .expo/types/router.d.ts, généré par le serveur Expo : lancer npm run web une fois avant)
 ```
+
+**Ne jamais lancer `npm run reset-project`** : c'est le script du gabarit `create-expo-app`, il déplace `src/` et `scripts/` dans `example/` et remplace l'app par un écran vide.
 
 ### Backoffice
 ```bash
 npm --prefix backoffice install
 npm --prefix backoffice run dev     # serveur Vite, port 5173
-npm --prefix backoffice run build   # tsc -b && vite build
+npm --prefix backoffice run build   # tsc -b && vite build — c'est aussi la vérification de types du backoffice
 npm --prefix backoffice run lint    # oxlint
 ```
 
@@ -76,13 +81,16 @@ Si les clés manquent, `supabase` vaut `null` et `isSupabaseConfigured` est `fal
 Les routes vivent dans `src/app/` (alias `@/*` → `src/*`, `typedRoutes` et `reactCompiler` activés). `src/app/_layout.tsx` est le **cerveau du routage** : il lit session / profil / mode invité et redirige. Les groupes :
 - `(auth)/` — bienvenue, connexion, inscription, création de profil
 - `(tabs)/` — 4 onglets : Événements (`index`), Tournois, Équipes, Profil
-- `evenements/[id]/…` (fiche, inscrits, tables, classement, liste, `appariement` des capitaines, `inscrire-equipe`, discussion) et `equipes/[id]` — écrans poussés, **publics** (un lien profond ne doit jamais être détourné vers l'accueil : voir la variable `onPublicRoute`)
+- `evenements/[id]/…` (fiche, inscrits, tables, classement, liste, `appariement` des capitaines, `inscrire-equipe`, discussion), `equipes/[id]` (+ `discussion`) et `rejoindre/[code]` — écrans poussés, **publics** : `onPublicRoute` couvre les trois préfixes `evenements`, `equipes` et `rejoindre`, car un lien profond ne doit jamais être détourné vers l'accueil. `rejoindre/[code]` est le cas limite qui explique la règle : un lien d'invitation tombe presque toujours sur quelqu'un sans compte, et le code est mis de côté (`use-pending-invite`) pour être retrouvé de l'autre côté de l'inscription
+- écrans de création poussés hors onglets : `tournois/creer`, `equipes/creer`
 - écrans transverses ouverts depuis le profil : `historique`, `meta` (statistiques par faction), `elo` (classement national)
 
 La garde est **déclarative** (`<Redirect>` calculé pendant le rendu), **jamais dans un `useEffect`** : sinon l'écran d'accueil clignote pour qui est déjà connecté. Tant que `booting` est vrai, on ne rend que le splash.
 
+Metro résout les fichiers par plateforme : un `xxx.web.tsx` à côté de `xxx.tsx` remplace ce dernier sur le web (`use-color-scheme.web.ts`, `animated-icon.web.tsx`). Une modification de comportement web se fait dans la variante `.web`, pas dans un `Platform.OS` au milieu du fichier commun.
+
 ### Navigation backoffice
-Toutes les routes vivent dans `backoffice/src/App.tsx`. Deux familles : le **jour J** (`/tournois/:id/{inscrits,check-in,rondes,classement,listes}`) et l'**administration** (`/admin/…`, réservée au rôle admin de la migration 0028). `/circuit/:id` est public : il reste accessible sans session.
+Toutes les routes vivent dans `backoffice/src/App.tsx`. Sans session, seuls `/connexion` et `/circuit/:id` (page publique d'un circuit) répondent, tout le reste renvoie vers `/connexion`. Connecté : liste et création (`/tournois`, `/tournois/creer`, `/circuits`), le **jour J** (`/tournois/:id/{inscrits,check-in,rondes,classement,listes}`) et l'**administration** (`/admin/…`, réservée au rôle admin de la migration 0028).
 
 ### Couches de données
 Pattern répété partout : **hook `use-*` → client Supabase → composant**.
@@ -124,6 +132,8 @@ Une **fonction de trigger** se termine par son `revoke` (`from public, anon, aut
 ### Comment une migration atteint la base
 Il n'y a **pas de CLI Supabase configurée** dans le dépôt (pas de `supabase/config.toml`, pas de stack locale) : le fichier sous `supabase/migrations/` est la source de vérité versionnée, mais il faut l'appliquer au projet distant — via le serveur MCP `supabase` déclaré dans `.mcp.json` (`apply_migration`) ou l'éditeur SQL du dashboard. Écrire le fichier ne suffit donc jamais : vérifier ensuite que la fonction existe bien en base.
 
+Le projet distant est `ajmhcslxlkjlvaxcazav` (région eu-west-3) : c'est le `project_id` à passer aux outils MCP `supabase`.
+
 Le projet Supabase du palier gratuit **se met en veille** après ~1 semaine d'inactivité (« Network request failed » côté app) — le réveiller depuis le dashboard ou via MCP `restore_project`.
 
 ### Notifications push
@@ -136,9 +146,10 @@ La file n'est pas vidée par un cron : **le client appelle `flushPushQueue()`** 
 - **Tout le texte utilisateur, les commentaires et les noms de routes sont en français.** Les identifiants de code (variables, types) sont en anglais ; les colonnes SQL en anglais snake_case.
 - **Aucune formulation genrée** : on ne connaît pas le genre des joueurs. Écrire « tu as le bye », pas « il est exempt ».
 - Commentaires rédigés : ils expliquent le *pourquoi* métier, pas le *quoi*. Les en-têtes de migration sont le modèle à suivre (la décision, l'alternative écartée, la raison). Garder ce ton.
-- Thème clair/sombre systématique via `@/constants/theme` + `useColorScheme()`, jamais de couleur en dur. Le design system y est centralisé : `Colors` (accent doré `tint`), paires sémantiques clair/sombre (`GreenColor`, `RedColor`, `TintBackground`…), échelle `Spacing` (`half`…`six`) pour les marges, `MaxContentWidth`. **Règle de contraste** : tout texte posé sur un fond `tint` doit utiliser `OnTint` (blanc en clair, noir sur l'or sombre) — sinon le contraste tombe à ~1,9:1, illisible.
+- Thème clair/sombre systématique via `@/constants/theme` — `useTheme()` (`src/hooks/use-theme.ts`) rend directement la palette du schéma courant, `useColorScheme()` seulement quand on a besoin du mode lui-même. Jamais de couleur en dur. Le design system y est centralisé : `Colors` (accent doré `tint`), paires sémantiques clair/sombre (`GreenColor`, `RedColor`, `TintBackground`…), échelle `Spacing` (`half`…`six`) pour les marges, `MaxContentWidth`. **Règle de contraste** : tout texte posé sur un fond `tint` doit utiliser `OnTint` (blanc en clair, noir sur l'or sombre) — sinon le contraste tombe à ~1,9:1, illisible.
 - Sur le web, les polices exposées par `Fonts` sont des variables CSS (`--font-display`…) définies dans `src/global.css`, que `theme.ts` importe. Ajouter une police touche donc aux deux fichiers.
 - Statuts et libellés centralisés dans `lib/tournaments.ts` (`StatusLabels`, `TypeLabels`, `ActiveRegistrationStatuses`) — réutiliser, ne pas redéfinir.
+- Deux helpers du backoffice portent une décision, pas un utilitaire : `lib/score-drafts.ts` garde en local les scores tapés mais pas encore confirmés (le wifi d'une salle des fêtes lâche) — il mémorise aussi la valeur serveur d'origine, et **si elle a changé, le serveur gagne et le brouillon est jeté** ; rien n'est jamais réenvoyé tout seul. `lib/export.ts` écrit les CSV avec séparateur `;`, BOM UTF-8 et fins de ligne CRLF, pour qu'Excel FR les ouvre avec les accents.
 - Le backoffice n'a **aucune bibliothèque de composants** : CSS fait main dans `backoffice/src/index.css`, variables reprenant le thème doré.
 - Un commit par US livrée, message en français expliquant le **pourquoi**.
 
@@ -151,7 +162,7 @@ La file n'est pas vidée par un cron : **le client appelle `flushPushQueue()`** 
 5. **`router.back()` échoue** sur un écran ouvert par lien direct : prévoir un repli `router.replace` vers l'écran parent.
 6. **Le `Modal` de React Native Web ne disparaît pas** quand `visible` repasse à faux : le monter conditionnellement (`{open ? <Modal/> : null}`).
 7. **Tous les hooks avant tout `return` conditionnel** : un `useMemo` placé après un retour anticipé casse l'ordre des hooks (page blanche).
-8. **Un état partagé entre écrans ne vit pas dans deux `useState`** : le drapeau invité est un store hors React (`src/hooks/use-guest.ts`).
+8. **Un état partagé entre écrans ne vit pas dans deux `useState`** : deux stores hors React le prouvent — le drapeau invité (`src/hooks/use-guest.ts`) et le code d'invitation en attente (`src/hooks/use-pending-invite.ts`, écrit par l'écran d'invitation, lu puis **consommé** par l'onglet Équipes). Modèle à reprendre : module + `useSyncExternalStore`.
 
 ## Agents et workflow du dépôt
 
