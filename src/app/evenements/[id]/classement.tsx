@@ -76,7 +76,7 @@ export default function ClassementScreen() {
   const scheme = useColorScheme();
   const mode = scheme === 'dark' ? 'dark' : 'light';
   const colors = Colors[mode];
-  const { session } = useSession();
+  const { session, loading: sessionLoading } = useSession();
   const userId = session?.user.id;
 
   const { standings, loading: standingsLoading, failed, refresh } = useStandings(id);
@@ -133,7 +133,7 @@ export default function ClassementScreen() {
 
   const query = search.trim().toLocaleLowerCase('fr');
   const filtered = query
-    ? standings.filter((row) => row.pseudo.toLocaleLowerCase('fr').includes(query))
+    ? standings.filter((row) => (row.pseudo ?? '').toLocaleLowerCase('fr').includes(query))
     : standings;
 
   // La FlatList exige une référence stable pour ce callback ; l'identifiant
@@ -165,7 +165,7 @@ export default function ClassementScreen() {
           },
         ]}
         accessible
-        accessibilityLabel={`${ordinalFr(row.rank)}. ${row.pseudo}, ${row.wins} ${row.wins > 1 ? 'victoires' : 'victoire'}, ${row.draws} ${row.draws > 1 ? 'nuls' : 'nul'}, ${row.losses} ${row.losses > 1 ? 'défaites' : 'défaite'}, ${row.points_for} points.`}>
+        accessibilityLabel={`${ordinalFr(row.rank)}. ${row.pseudo ?? 'pseudo masqué'}, ${row.wins} ${row.wins > 1 ? 'victoires' : 'victoire'}, ${row.draws} ${row.draws > 1 ? 'nuls' : 'nul'}, ${row.losses} ${row.losses > 1 ? 'défaites' : 'défaite'}, ${row.points_for} points.`}>
         <View style={[styles.rankBadge, { backgroundColor: colors.backgroundSelected }]}>
           <ThemedText style={[styles.rankText, topThree && { color: colors.tint }]}>
             {row.rank}
@@ -174,7 +174,7 @@ export default function ClassementScreen() {
         <View style={styles.playerBlock}>
           <View style={styles.pseudoLine}>
             <ThemedText type="smallBold" numberOfLines={1} style={styles.pseudo}>
-              {row.pseudo}
+              {row.pseudo ?? '—'}
             </ThemedText>
             {isMe ? (
               <View style={[styles.chip, { backgroundColor: colors.tint }]}>
@@ -231,7 +231,7 @@ export default function ClassementScreen() {
                 ) : null}
               </View>
               <ThemedText numberOfLines={2} style={styles.podiumPseudo}>
-                {row.pseudo}
+                {row.pseudo ?? '—'}
               </ThemedText>
               {row.faction ? (
                 <ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
@@ -414,7 +414,24 @@ export default function ClassementScreen() {
           </View>
         </MetaRow>
 
-        {standings.length >= SearchThreshold ? (
+        {/* Sans compte, la base rend les rangs et les scores mais masque les
+            pseudos (0055) : on le dit, comme la fiche le dit pour les inscrits. */}
+        {!sessionLoading && !session ? (
+          <View style={styles.lockedBlock}>
+            <Ionicons name="lock-closed-outline" size={20} color={colors.textSecondary} />
+            <ThemedText type="small" themeColor="textSecondary" style={styles.centeredText}>
+              Les pseudos du classement sont visibles par les membres connectés.
+            </ThemedText>
+            <Pressable style={styles.linkButton} onPress={() => router.push('/profil')}>
+              <ThemedText type="smallBold" style={{ color: colors.tint }}>
+                Se connecter
+              </ThemedText>
+            </Pressable>
+          </View>
+        ) : null}
+
+        {/* Chercher un pseudo n'a de sens que si on les voit. */}
+        {session && standings.length >= SearchThreshold ? (
           <View style={[styles.searchBox, { backgroundColor: colors.backgroundElement }]}>
             <Ionicons name="search-outline" size={18} color={colors.textSecondary} />
             <TextInput
@@ -657,6 +674,15 @@ const styles = StyleSheet.create({
   playerBlock: {
     flex: 1,
     gap: 1,
+  },
+  lockedBlock: {
+    alignItems: 'center',
+    gap: Spacing.two,
+    paddingVertical: Spacing.three,
+  },
+  linkButton: {
+    minHeight: 44,
+    justifyContent: 'center',
   },
   pseudoLine: {
     flexDirection: 'row',

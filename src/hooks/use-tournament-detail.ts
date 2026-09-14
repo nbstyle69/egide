@@ -90,14 +90,31 @@ export function useTournamentDetail(tournamentId: string | undefined, userId: st
       return;
     }
     setLoading(true);
+    // La faction déclarée est réservée aux connectés (0038, arbitrage du
+    // porteur) : `anon` n'a pas le droit de lire la colonne, et PostgREST
+    // refuse alors la requête entière — un visiteur sans compte lisait
+    // « Événement introuvable » sur tous les événements. On demande donc la
+    // colonne seulement quand une session existe. C'est le jeton qui décide,
+    // pas `userId` : lui n'est connu qu'après le premier rendu.
+    const { data: auth } = await supabase.auth.getSession();
+    const factionColumn = auth.session ? 'faction, ' : '';
     const { data } = await supabase
       .from('tournaments')
       .select(
-        '*, organizer:profiles(pseudo), registrations(id, player_id, status, created_at, promoted_at, dropped_round, faction, team_registration_id, roster_position, profile:profiles(pseudo, faction_favorite)), team_registrations(id, team_id, captain_id, status, created_at, promoted_at, team:teams(name, region))'
+        `*, organizer:profiles(pseudo), registrations(id, player_id, status, created_at, promoted_at, dropped_round, ${factionColumn}team_registration_id, roster_position, profile:profiles(pseudo, faction_favorite)), team_registrations(id, team_id, captain_id, status, created_at, promoted_at, team:teams(name, region))`
       )
       .eq('id', tournamentId)
       .maybeSingle<TournamentDetail>();
-    setTournament(data ?? null);
+    // Sans session, la colonne est absente de la réponse : on la rend `null`
+    // pour que le type dise vrai et que l'écran n'ait pas deux cas à gérer.
+    setTournament(
+      data
+        ? {
+            ...data,
+            registrations: data.registrations.map((r) => ({ ...r, faction: r.faction ?? null })),
+          }
+        : null
+    );
     setLoading(false);
   }, [tournamentId]);
 

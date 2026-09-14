@@ -1,7 +1,7 @@
 # EGIDE — résumé du projet
 
 > Document de passation : à donner tel quel au début d'une nouvelle conversation pour
-> reprendre le travail sans repartir de zéro. Dernière mise à jour : 27 août 2026.
+> reprendre le travail sans repartir de zéro. Dernière mise à jour : 14 septembre 2026.
 
 ## 1. Le projet en trois phrases
 
@@ -27,7 +27,7 @@ deux côtés (`lib/supabase.ts`, `lib/tournaments.ts`, `lib/ordinal.ts`, `hooks/
 
 ### Règle d'architecture centrale
 
-**La logique métier vit dans Postgres, pas dans le client.** 53 migrations numérotées et
+**La logique métier vit dans Postgres, pas dans le client.** 55 migrations numérotées et
 **immuables** dans `supabase/migrations/` — pour changer quoi que ce soit, on **ajoute** une
 migration `00NN_description.sql`, on n'édite jamais une existante. Les fonctions sont en
 `security definer` avec des `grant`/`revoke` explicites, appelées via `supabase.rpc(...)`.
@@ -287,12 +287,16 @@ avec son troisième mode de barre latérale sur les routes `/admin/*`.
 - **Dépôt GitHub** : `github.com/nbstylz/egide` (public). Aucune clé n'y figure, les `.env`
   sont ignorés. Le code des Edge Functions y est public, sans danger : les règles sont
   appliquées par Postgres, pas par le TypeScript.
-- **Aucun navigateur pilotable sur le poste de développement** : les serveurs MCP exigent
-  Google Chrome, seul Edge est installé, et l'installer demande les droits administrateur.
-  Le parcours navigateur se fait donc **par le porteur**. Ce qui reste vérifiable sans lui :
-  assertions SQL, appels HTTP réels (`curl` + JWT obtenu par `/auth/v1/token`), et le HTML
-  rendu par le serveur Expo (`curl http://localhost:8081/<route>`) — cette dernière technique
-  a permis d'écarter plusieurs fausses pistes.
+- **Navigateur pilotable : ça dépend de la session.** Le panneau « Browser » de l'app de
+  bureau Claude Code (outils `mcp__Claude_Browser__*`) fonctionne depuis le 14 septembre
+  2026 — c'est lui qui a révélé les deux régressions du mode invité (0054, 0055). Les
+  serveurs MCP Playwright / Chrome DevTools, eux, exigent Google Chrome, absent du poste.
+  Quand aucun navigateur ne répond, la vérification passe par : assertions SQL, appels HTTP
+  réels (`curl` + JWT obtenu par `/auth/v1/token`), et le HTML rendu par le serveur Expo
+  (`curl http://localhost:8081/<route>`). Deux réflexes appris dans le panneau : les
+  captures d'écran expirent quand la fenêtre est cachée (lire la page avec `read_page`), et
+  la console garde les erreurs des pages précédentes — pour attribuer un 401 à un écran,
+  lire `performance.getEntriesByType('resource')` avec `responseStatus`.
 - **Supabase exige la confirmation d'email** et son serveur d'envoi est vite saturé. Pour le
   développement : dashboard → Authentication → Sign In / Providers → Email → décocher
   « Confirm email ». Sinon, confirmer les comptes directement en SQL.
@@ -309,9 +313,14 @@ avec son troisième mode de barre latérale sur les routes `/admin/*`.
    plus les push distantes depuis le SDK 53. Le mot de passe EAS ne doit jamais
    passer par l'agent.
 2. **Parcourir l'application dans un navigateur.** Aucun écran livré depuis le
-   27 août n'a jamais été affiché : tout a été vérifié par le typage, le lint et
+   27 août n'avait été affiché : tout a été vérifié par le typage, le lint et
    des assertions SQL, jamais à l'œil. C'est l'angle mort le plus large du
-   projet, et il grandit à chaque écran.
+   projet, et il grandit à chaque écran. **Entamé le 14 septembre 2026** en mode
+   invité (accueil, annuaire, fiche, tables, classement d'un tournoi par
+   équipes) : deux régressions trouvées et corrigées (0054, 0055 — un visiteur
+   sans compte ne pouvait plus ouvrir aucune fiche ni aucun classement depuis
+   la 0038). Reste à parcourir **connecté** : inscription, roster à deux mains,
+   appariement des capitaines, discussions, profil, historique, méta, ELO.
 3. **Dix questions de règles AoS**, toutes implémentées sous hypothèse par
    défaut et rectifiables par une migration : voir le tableau en tête de
    l'EPIC-7 dans `BACKLOG.md`. Les cinq premières (protocole d'appariement,

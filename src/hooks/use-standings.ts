@@ -6,8 +6,9 @@ import { supabase } from '@/lib/supabase';
 export type StandingLine = {
   rank: number;
   player_id: string;
-  pseudo: string;
-  /** Faction déclarée pour ce tournoi (US-9.3), jamais la favorite du profil. */
+  /** Null pour un visiteur sans compte : les pseudos sont réservés aux connectés (0055). */
+  pseudo: string | null;
+  /** Faction déclarée pour ce tournoi (US-9.3), jamais la favorite du profil. Null sans compte. */
   faction: string | null;
   played: number;
   wins: number;

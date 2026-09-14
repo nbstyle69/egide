@@ -1,0 +1,25 @@
+-- Migration 0054 : le roster d'un tournoi par équipes se lit sans compte
+--
+-- CE QU'ON RÉPARE. Depuis la 0038, `anon` ne lit `registrations` que colonne
+-- par colonne, et toute colonne nouvelle est privée par défaut — règle voulue,
+-- qu'on garde. Mais les deux colonnes de roster ajoutées en 0042
+-- (`team_registration_id`, `roster_position`) n'ont jamais reçu leur `grant`,
+-- et la fiche d'un événement les demande. Résultat, constaté le 14 septembre
+-- 2026 au premier parcours navigateur : un visiteur sans compte ouvre un
+-- événement et lit « Événement introuvable » — PostgREST refuse la requête
+-- entière dès qu'une colonne lui est interdite. Le mode invité, décision
+-- assumée (« l'annuaire, les tables et les classements sont publics »), était
+-- cassé sur tous les événements depuis le 27 août.
+--
+-- CE QU'ON OUVRE. La composition du roster n'est pas un secret : le nom des
+-- équipes engagées est déjà public (`team_registrations` et `teams.name` sont
+-- lisibles par `anon`), et le jour J les tables affichent qui joue contre qui.
+-- Savoir qu'un joueur est le troisième de « Cohorte de Shyish » n'apprend rien
+-- de plus que le classement.
+--
+-- CE QU'ON N'OUVRE PAS. `registrations.faction` reste réservée aux connectés :
+-- c'est l'arbitrage du porteur du 27 août 2026 (0038, règle 1). La fiche doit
+-- donc cesser de la demander quand personne n'est connecté — c'est le client
+-- qui s'adapte (`use-tournament-detail.ts`), pas la règle.
+
+grant select (team_registration_id, roster_position) on public.registrations to anon;
