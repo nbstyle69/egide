@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 
 import { flushPushQueue } from '../lib/push';
 import { supabase } from '../lib/supabase';
+import { BattleplanDatalist, BattleplanListId } from '../components/battleplan-datalist';
 
 import { AdminReadOnlyBanner } from '../components/admin-page-header';
 import { CloseRoundModal, type CloseResult } from '../components/close-round-modal';
@@ -713,7 +714,8 @@ export function RondesPage({
                   className="scenario-input"
                   type="text"
                   maxLength={80}
-                  placeholder="Facultatif — ex. Focal Points"
+                  placeholder="Facultatif — ex. Dans les flammes"
+                  list={BattleplanListId}
                   value={scenarioDraft}
                   onChange={(event) => {
                     setScenarioDraft(event.target.value);
@@ -728,6 +730,7 @@ export function RondesPage({
                     }
                   }}
                 />
+                <BattleplanDatalist />
                 <span className="scenario-hint" aria-live="polite">
                   {scenarioSaved ? 'Enregistré' : 'Visible par les joueurs dans l’app'}
                 </span>

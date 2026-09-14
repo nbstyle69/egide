@@ -174,6 +174,16 @@ avec son troisième mode de barre latérale sur les routes `/admin/*`.
     reçoit pas de rang ; `profiles.faction_favorite` n'est jamais substituée à la faction
     réellement jouée.
 
+19. **Le scénario de ronde reste du texte libre, la liste de la saison le suggère**
+    (2026-09-14). Le porteur a fourni les cartes du General's Handbook 2026-27 : les
+    12 plans de bataille (deux tableaux de six) vivent dans
+    `backoffice/src/lib/battleplans.ts` et sont proposés en suggestions natives
+    (`<datalist>`) sur les trois champs de scénario du back office. Rien n'est fermé
+    (0017 tient : scénarios maison, saison précédente), mais douze organisateurs
+    écrivent « Dans les flammes » de la même façon. **À rafraîchir chaque saison** :
+    la liste et `BattleplanSeason`. Les cartes de tactiques de bataille (6) n'ont
+    aucun point d'ancrage dans l'app — choix par joueur en partie — et n'y figurent pas.
+
 ## 6. Conventions de code
 
 - **Tout le texte utilisateur, les commentaires et les noms de routes sont en français.**

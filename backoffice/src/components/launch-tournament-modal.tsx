@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { Modal } from './modal';
 import { supabase } from '../lib/supabase';
 import type { TournamentType } from '../lib/tournaments';
+import { BattleplanDatalist, BattleplanListId } from './battleplan-datalist';
 
 type Props = {
   tournamentId: string;
@@ -170,11 +171,13 @@ export function LaunchTournamentModal({
         <input
           type="text"
           maxLength={80}
-          placeholder="ex. Focal Points"
+          placeholder="ex. Dans les flammes"
+          list={BattleplanListId}
           value={scenario}
           disabled={busy}
           onChange={(event) => setScenario(event.target.value)}
         />
+        <BattleplanDatalist />
         <span className="field-hint">
           Affiché aux joueurs dans l’app. Modifiable ensuite depuis la page Rondes.
         </span>

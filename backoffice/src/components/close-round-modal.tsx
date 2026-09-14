@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Modal } from './modal';
 import type { Pairing } from '../hooks/use-rounds';
 import { supabase } from '../lib/supabase';
+import { BattleplanDatalist, BattleplanListId } from './battleplan-datalist';
 
 /** Ce que la base renvoie après une clôture réussie. */
 export type CloseResult = {
@@ -261,11 +262,13 @@ export function CloseRoundModal({
           <input
             type="text"
             maxLength={80}
-            placeholder="ex. Focal Points"
+            placeholder="ex. Dans les flammes"
+            list={BattleplanListId}
             value={scenario}
             disabled={busy}
             onChange={(event) => setScenario(event.target.value)}
           />
+          <BattleplanDatalist />
           <span className="field-hint">
             Affiché aux joueurs dans l’app. Modifiable ensuite depuis la page Rondes.
           </span>
