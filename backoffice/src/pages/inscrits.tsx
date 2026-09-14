@@ -315,12 +315,16 @@ export function InscritsPage({
     !readOnly && userId === tournament.organizer_id && tournament.status !== 'cancelled';
   const showStatusColumn = !canRemove;
   const total = registered.length + waitlisted.length + withdrawn.length;
-  const remaining = tournament.capacity - registered.length;
-  const isFull = registered.length >= tournament.capacity;
-  const fillPercent = Math.min(
-    100,
-    Math.round((registered.length / tournament.capacity) * 100)
-  );
+  // La capacité d'un tournoi par équipes se compte en équipes (0041) : la
+  // jauge compare des équipes engagées, pas leurs joueurs — sinon quatre
+  // équipes de trois sur huit places lisaient « 12 / 8 · Complet ».
+  const teamTournament = tournament.type === 'team';
+  const occupied = teamTournament
+    ? new Set(registered.map((r) => r.team_registration_id).filter(Boolean)).size
+    : registered.length;
+  const remaining = tournament.capacity - occupied;
+  const isFull = occupied >= tournament.capacity;
+  const fillPercent = Math.min(100, Math.round((occupied / tournament.capacity) * 100));
   const noResults =
     search.trim() !== '' &&
     sortedRegistered.length === 0 &&
@@ -366,9 +370,9 @@ export function InscritsPage({
       <div className="stats-row">
         <div className="stat-card">
           <div className="stat-value">
-            {registered.length} / {tournament.capacity}
+            {occupied} / {tournament.capacity}
           </div>
-          <div className="stat-label">Inscrits</div>
+          <div className="stat-label">{teamTournament ? 'Équipes engagées' : 'Inscrits'}</div>
           <div className="mini-gauge">
             <div
               className={`mini-gauge-fill${isFull ? ' full' : ''}`}

@@ -13,6 +13,9 @@ export type Registration = {
   faction: string | null;
   /** Rang du joueur dans le roster de son équipe, ou null en individuel. */
   roster_position: number | null;
+  /** L'inscription d'équipe qui porte ce joueur, ou null en individuel — c'est
+   *  elle qu'on compte contre la capacité d'un tournoi par équipes. */
+  team_registration_id: string | null;
   profile: { pseudo: string; region: string | null } | null;
   /**
    * L'équipe qui a inscrit ce joueur, en tournoi par équipes. L'écran ne
@@ -54,7 +57,7 @@ export function useRegistrations(tournamentId: string | undefined) {
     const { data, error: dbError } = await supabase
       .from('registrations')
       .select(
-        'id, player_id, status, created_at, dropped_round, faction, roster_position, ' +
+        'id, player_id, status, created_at, dropped_round, faction, roster_position, team_registration_id, ' +
           'profile:profiles(pseudo, region), ' +
           'team_registration:team_registrations(team:teams(name))'
       )
