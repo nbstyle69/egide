@@ -325,12 +325,17 @@ avec son troisième mode de barre latérale sur les routes `/admin/*`.
 2. **Parcourir l'application dans un navigateur.** Aucun écran livré depuis le
    27 août n'avait été affiché : tout a été vérifié par le typage, le lint et
    des assertions SQL, jamais à l'œil. C'est l'angle mort le plus large du
-   projet, et il grandit à chaque écran. **Entamé le 14 septembre 2026** en mode
-   invité (accueil, annuaire, fiche, tables, classement d'un tournoi par
-   équipes) : deux régressions trouvées et corrigées (0054, 0055 — un visiteur
+   projet, et il grandit à chaque écran. **Parcours invité terminé le 14 septembre
+   2026** : accueil, annuaire, fiche, inscrits, tables et classement d'un tournoi
+   par équipes, fiche d'équipe, lien d'invitation, les quatre onglets, et la page
+   de circuit publique du back office — tous sans aucune réponse en erreur après
+   correction. Deux régressions trouvées et corrigées (0054, 0055 — un visiteur
    sans compte ne pouvait plus ouvrir aucune fiche ni aucun classement depuis
    la 0038). Reste à parcourir **connecté** : inscription, roster à deux mains,
-   appariement des capitaines, discussions, profil, historique, méta, ELO.
+   appariement des capitaines, discussions, profil, historique, méta, ELO, et tout
+   le back office derrière sa connexion. L'agent ne saisit jamais de mot de passe
+   dans un navigateur : cette moitié revient au porteur, ou passe par une session
+   injectée (voir §9).
 3. **Dix questions de règles AoS**, toutes implémentées sous hypothèse par
    défaut et rectifiables par une migration : voir le tableau en tête de
    l'EPIC-7 dans `BACKLOG.md`. Les cinq premières (protocole d'appariement,
