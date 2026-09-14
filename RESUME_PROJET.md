@@ -27,7 +27,7 @@ deux côtés (`lib/supabase.ts`, `lib/tournaments.ts`, `lib/ordinal.ts`, `hooks/
 
 ### Règle d'architecture centrale
 
-**La logique métier vit dans Postgres, pas dans le client.** 55 migrations numérotées et
+**La logique métier vit dans Postgres, pas dans le client.** 56 migrations numérotées et
 **immuables** dans `supabase/migrations/` — pour changer quoi que ce soit, on **ajoute** une
 migration `00NN_description.sql`, on n'édite jamais une existante. Les fonctions sont en
 `security definer` avec des `grant`/`revoke` explicites, appelées via `supabase.rpc(...)`.
@@ -331,11 +331,16 @@ avec son troisième mode de barre latérale sur les routes `/admin/*`.
    de circuit publique du back office — tous sans aucune réponse en erreur après
    correction. Deux régressions trouvées et corrigées (0054, 0055 — un visiteur
    sans compte ne pouvait plus ouvrir aucune fiche ni aucun classement depuis
-   la 0038). Reste à parcourir **connecté** : inscription, roster à deux mains,
-   appariement des capitaines, discussions, profil, historique, méta, ELO, et tout
-   le back office derrière sa connexion. L'agent ne saisit jamais de mot de passe
-   dans un navigateur : cette moitié revient au porteur, ou passe par une session
-   injectée (voir §9).
+   la 0038). **Côté back office, entamé le même jour** avec la session ouverte par
+   le porteur dans le panneau : Mes tournois, fiche, Rondes (saisie du scénario
+   vérifiée jusqu'à l'écran Tables du mobile), Administration. Troisième régression
+   trouvée et corrigée (0056 + hooks des deux apps) : un tournoi par équipes
+   comptait ses **joueurs** contre une capacité en **équipes** — « 12 / 8 · Complet »
+   pour quatre équipes de trois. Reste à parcourir **connecté côté mobile** :
+   inscription, roster à deux mains, appariement des capitaines, discussions,
+   profil, historique, méta, ELO. L'agent ne saisit jamais de mot de passe dans un
+   navigateur : le porteur se connecte lui-même dans le panneau, l'agent reprend
+   ensuite la session (c'est ce qui a marché le 14 septembre).
 3. **Dix questions de règles AoS**, toutes implémentées sous hypothèse par
    défaut et rectifiables par une migration : voir le tableau en tête de
    l'EPIC-7 dans `BACKLOG.md`. Les cinq premières (protocole d'appariement,

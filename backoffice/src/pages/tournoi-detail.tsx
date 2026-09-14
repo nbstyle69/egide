@@ -546,10 +546,12 @@ export function TournoiDetailPage({
           </div>
           <div className="group-title">Capacité</div>
           <div className="row">
-            <span className="label">Joueurs</span>
+            <span className="label">{tournament.type === 'team' ? 'Équipes' : 'Joueurs'}</span>
             <span>
-              {tournament.registered_count} inscrit{tournament.registered_count > 1 ? 's' : ''} /{' '}
-              {tournament.capacity} places
+              {tournament.type === 'team'
+                ? `${tournament.registered_count} engagée${tournament.registered_count > 1 ? 's' : ''}`
+                : `${tournament.registered_count} inscrit${tournament.registered_count > 1 ? 's' : ''}`}{' '}
+              / {tournament.capacity} places
               {tournament.type === 'team' && tournament.team_size
                 ? ` (équipes de ${tournament.team_size})`
                 : ''}
@@ -594,9 +596,13 @@ export function TournoiDetailPage({
           <p style={{ margin: 0 }}>
             Le tournoi passera au statut Annulé.
             {hasActiveRegistrations
-              ? tournament.registered_count > 1
-                ? ` Les ${tournament.registered_count} joueurs inscrits ne pourront plus s’y inscrire ni le retrouver dans les recherches.`
-                : ' Le joueur inscrit ne pourra plus s’y inscrire ni le retrouver dans les recherches.'
+              ? tournament.type === 'team'
+                ? tournament.registered_count > 1
+                  ? ` Les ${tournament.registered_count} équipes engagées ne pourront plus s’y inscrire ni le retrouver dans les recherches.`
+                  : ' L’équipe engagée ne pourra plus s’y inscrire ni le retrouver dans les recherches.'
+                : tournament.registered_count > 1
+                  ? ` Les ${tournament.registered_count} joueurs inscrits ne pourront plus s’y inscrire ni le retrouver dans les recherches.`
+                  : ' Le joueur inscrit ne pourra plus s’y inscrire ni le retrouver dans les recherches.'
               : ''}{' '}
             <strong>Cette action est irréversible.</strong>
           </p>

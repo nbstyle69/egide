@@ -53,11 +53,15 @@ export function MyTournamentCard({
           </ThemedText>
         </MetaRow>
         <MetaRow icon="people-outline">
+          {/* La capacité d'un tournoi par équipes se compte en équipes (0041). */}
           {full ? (
-            <ThemedText type="smallBold">Complet · {tournament.capacity} joueurs</ThemedText>
+            <ThemedText type="smallBold">
+              Complet · {tournament.capacity} {tournament.type === 'team' ? 'équipes' : 'joueurs'}
+            </ThemedText>
           ) : (
             <ThemedText type="small" themeColor="textSecondary">
-              {tournament.registered_count} / {tournament.capacity} inscrits
+              {tournament.registered_count} / {tournament.capacity}{' '}
+              {tournament.type === 'team' ? 'équipes' : 'inscrits'}
             </ThemedText>
           )}
         </MetaRow>

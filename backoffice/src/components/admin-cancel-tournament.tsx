@@ -49,9 +49,13 @@ export function AdminCancelTournament({ tournament, onCancelled, onToast }: Prop
           <p>
             Annuler ce tournoi le retirera des recherches, préviendra{' '}
             {tournament.registered_count > 0
-              ? `les ${tournament.registered_count} joueur${
-                  tournament.registered_count > 1 ? 's' : ''
-                } inscrit${tournament.registered_count > 1 ? 's' : ''}`
+              ? tournament.type === 'team'
+                ? `les ${tournament.registered_count} équipe${
+                    tournament.registered_count > 1 ? 's' : ''
+                  } engagée${tournament.registered_count > 1 ? 's' : ''}`
+                : `les ${tournament.registered_count} joueur${
+                    tournament.registered_count > 1 ? 's' : ''
+                  } inscrit${tournament.registered_count > 1 ? 's' : ''}`
               : 'son organisateur'}
             , et sera consigné dans le journal d’administration avec votre motif.
           </p>
@@ -137,8 +141,12 @@ function CancelModal({
         Le tournoi passera au statut <strong>Annulé</strong>.{' '}
         {tournament.registered_count > 0 ? (
           <>
-            Les <strong>{tournament.registered_count} joueurs inscrits</strong> recevront une
-            notification.{' '}
+            Les{' '}
+            <strong>
+              {tournament.registered_count}{' '}
+              {tournament.type === 'team' ? 'équipes engagées' : 'joueurs inscrits'}
+            </strong>{' '}
+            recevront une notification.{' '}
           </>
         ) : null}
         L’organisateur ne pourra pas revenir en arrière. <strong>Cette action est

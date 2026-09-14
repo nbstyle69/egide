@@ -7,18 +7,29 @@ import {
   type Tournament,
 } from '@/lib/tournaments';
 
-/** Tournoi + nombre d'inscrits actifs (places occupées). */
+/**
+ * Tournoi + places occupées, **dans l'unité du tournoi** : des joueurs en
+ * individuel, des équipes en tournoi par équipes (0041 : la capacité s'y
+ * compte en équipes). Compter les joueurs contre une capacité en équipes
+ * annonçait « Complet » à quatre équipes de trois sur huit places.
+ */
 export type TournamentWithCount = Tournament & { registered_count: number };
 
-type Row = Tournament & { registrations: { status: RegistrationStatus }[] };
+type StatusRow = { status: RegistrationStatus };
+type Row = Tournament & { registrations: StatusRow[]; team_registrations: StatusRow[] };
+
+const CountSelect = '*, registrations(status), team_registrations(status)';
 
 /** Transforme les inscriptions imbriquées en simple compteur. */
 function withCount(rows: Row[] | null): TournamentWithCount[] {
-  return (rows ?? []).map(({ registrations, ...tournament }) => ({
-    ...tournament,
-    registered_count: registrations.filter((r) => ActiveRegistrationStatuses.includes(r.status))
-      .length,
-  }));
+  return (rows ?? []).map(({ registrations, team_registrations, ...tournament }) => {
+    const slots = tournament.type === 'team' ? team_registrations : registrations;
+    return {
+      ...tournament,
+      registered_count: (slots ?? []).filter((r) => ActiveRegistrationStatuses.includes(r.status))
+        .length,
+    };
+  });
 }
 
 /**
@@ -38,7 +49,7 @@ export function useMyTournaments(userId: string | undefined) {
     setLoading(true);
     const { data } = await supabase
       .from('tournaments')
-      .select('*, registrations(status)')
+      .select(CountSelect)
       .eq('organizer_id', userId)
       .order('event_date', { ascending: true });
     setTournaments(withCount(data as Row[] | null));
@@ -68,7 +79,7 @@ export function useUpcomingEvents(past = false) {
     }
     setLoading(true);
     const today = new Date().toISOString().slice(0, 10);
-    const query = supabase.from('tournaments').select('*, registrations(status)');
+    const query = supabase.from('tournaments').select(CountSelect);
     const { data } = past
       ? // Passés : les tournois terminés, du plus récent au plus ancien —
         // on y cherche un résultat, pas une inscription.

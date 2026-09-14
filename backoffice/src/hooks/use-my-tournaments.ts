@@ -7,9 +7,32 @@ import {
   type Tournament,
 } from '../lib/tournaments';
 
+/**
+ * `registered_count` compte les **places occupées dans l'unité du tournoi** :
+ * des joueurs en individuel, des équipes en tournoi par équipes (0041 : la
+ * capacité s'y compte en équipes). Compter les joueurs contre une capacité en
+ * équipes affichait « 12 / 8 · Complet » pour quatre équipes de trois sur huit
+ * places — vu le 14 septembre 2026 sur « Mes tournois ».
+ */
 export type TournamentWithCount = Tournament & { registered_count: number };
 
-type Row = Tournament & { registrations: { status: RegistrationStatus }[] };
+type StatusRow = { status: RegistrationStatus };
+type Row = Tournament & { registrations: StatusRow[]; team_registrations: StatusRow[] };
+
+const CountSelect = '*, registrations(status), team_registrations(status)';
+
+/** Places occupées : équipes engagées en tournoi par équipes, joueurs sinon. */
+function occupiedSlots({ type, registrations, team_registrations }: Row): number {
+  const rows = type === 'team' ? team_registrations : registrations;
+  return (rows ?? []).filter((r) => ActiveRegistrationStatuses.includes(r.status)).length;
+}
+
+function withCount({ registrations, team_registrations, ...tournament }: Row): TournamentWithCount {
+  return {
+    ...tournament,
+    registered_count: occupiedSlots({ ...tournament, registrations, team_registrations }),
+  };
+}
 
 /** Tournois de l'organisateur connecté + nombre d'inscrits actifs. */
 export function useMyTournaments(userId: string | undefined) {
@@ -27,19 +50,12 @@ export function useMyTournaments(userId: string | undefined) {
     setError(false);
     const { data, error: dbError } = await supabase
       .from('tournaments')
-      .select('*, registrations(status)')
+      .select(CountSelect)
       .eq('organizer_id', userId);
     if (dbError) {
       setError(true);
     } else {
-      setTournaments(
-        ((data as Row[]) ?? []).map(({ registrations, ...tournament }) => ({
-          ...tournament,
-          registered_count: registrations.filter((r) =>
-            ActiveRegistrationStatuses.includes(r.status)
-          ).length,
-        }))
-      );
+      setTournaments(((data as Row[]) ?? []).map(withCount));
     }
     setLoading(false);
   }, [userId]);
@@ -67,7 +83,7 @@ export function useTournament(tournamentId: string | undefined) {
     setError(false);
     const { data, error: dbError } = await supabase
       .from('tournaments')
-      .select('*, registrations(status)')
+      .select(CountSelect)
       .eq('id', tournamentId)
       .maybeSingle<Row>();
     if (dbError) {
@@ -76,13 +92,7 @@ export function useTournament(tournamentId: string | undefined) {
     } else if (!data) {
       setTournament(null);
     } else {
-      const { registrations, ...rest } = data;
-      setTournament({
-        ...rest,
-        registered_count: registrations.filter((r) =>
-          ActiveRegistrationStatuses.includes(r.status)
-        ).length,
-      });
+      setTournament(withCount(data));
     }
     setLoading(false);
   }, [tournamentId]);
