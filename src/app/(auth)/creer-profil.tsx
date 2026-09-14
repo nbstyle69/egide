@@ -1,10 +1,10 @@
-import { Pressable, ScrollView, StyleSheet, useColorScheme } from 'react-native';
+import { Pressable, ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ProfileForm } from '@/components/profile-form';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Colors, MaxContentWidth, Spacing } from '@/constants/theme';
+import { MaxContentWidth, Spacing } from '@/constants/theme';
 import { useProfile } from '@/hooks/use-profile';
 import { useSession } from '@/hooks/use-session';
 import { supabase } from '@/lib/supabase';
@@ -16,8 +16,6 @@ import { supabase } from '@/lib/supabase';
  * enfermer quelqu'un qu'un bug de formulaire bloquerait.
  */
 export default function CreerProfilScreen() {
-  const scheme = useColorScheme();
-  const colors = Colors[scheme === 'dark' ? 'dark' : 'light'];
   const { session } = useSession();
   const { refresh } = useProfile(session?.user.id);
 

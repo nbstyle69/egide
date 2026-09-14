@@ -27,7 +27,7 @@ deux côtés (`lib/supabase.ts`, `lib/tournaments.ts`, `lib/ordinal.ts`, `hooks/
 
 ### Règle d'architecture centrale
 
-**La logique métier vit dans Postgres, pas dans le client.** 56 migrations numérotées et
+**La logique métier vit dans Postgres, pas dans le client.** 57 migrations numérotées et
 **immuables** dans `supabase/migrations/` — pour changer quoi que ce soit, on **ajoute** une
 migration `00NN_description.sql`, on n'édite jamais une existante. Les fonctions sont en
 `security definer` avec des `grant`/`revoke` explicites, appelées via `supabase.rpc(...)`.
@@ -340,7 +340,17 @@ avec son troisième mode de barre latérale sur les routes `/admin/*`.
    inscription, roster à deux mains, appariement des capitaines, discussions,
    profil, historique, méta, ELO. L'agent ne saisit jamais de mot de passe dans un
    navigateur : le porteur se connecte lui-même dans le panneau, l'agent reprend
-   ensuite la session (c'est ce qui a marché le 14 septembre).
+   ensuite la session (c'est ce qui a marché le 14 septembre). **Attention** : la
+   session ouverte dans l'onglet du back office ne se transfère pas à l'onglet
+   mobile — le classifieur bloque tout déplacement du jeton, même entre deux
+   onglets du même panneau. Se connecter séparément dans chaque onglet.
+   Advisors Supabase soldés le même jour (0057 : cinq politiques RLS en
+   `(select auth.uid())`, onze index de clés étrangères) ; ce qui reste est
+   voulu — fonctions `security definer` exposées à `authenticated`, lectures
+   publiques à `anon`, deux tables à politiques multiples. Un réglage est à
+   activer depuis le dashboard, Authentication → Passwords : la **protection
+   contre les mots de passe compromis** (HaveIBeenPwned), signalée par l'advisor
+   de sécurité.
 3. **Dix questions de règles AoS**, toutes implémentées sous hypothèse par
    défaut et rectifiables par une migration : voir le tableau en tête de
    l'EPIC-7 dans `BACKLOG.md`. Les cinq premières (protocole d'appariement,
