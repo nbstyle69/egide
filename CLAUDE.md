@@ -35,6 +35,8 @@ Les deux sont des projets npm **séparés** (chacun son `package.json` et son `n
 
 Cas particulier des **factions** : le mobile les lit dans `src/lib/factions.ts` (liste statique), le backoffice dans la table `public.factions` (migration 0038, hook `use-factions.ts`). Le fichier TS et la table sont déclarés **miroirs** : une faction ajoutée, renommée ou retirée touche les deux dans le même commit.
 
+Deux référentiels vieillissent avec les saisons de jeu et doivent être rafraîchis, pas corrigés au cas par cas : `src/lib/factions.ts` (édition en cours) et `backoffice/src/lib/battleplans.ts` — les 12 plans de bataille du General's Handbook, **suggérés** dans les trois champs de scénario du backoffice via `<BattleplanDatalist>`. Le scénario reste du **texte libre** (0017) : la liste guide l'orthographe pour que l'historique ne voie pas trois scénarios là où il y en a un, elle n'interdit rien. À la saison suivante, remplacer la liste et la constante `BattleplanSeason`.
+
 ## Commandes
 
 ### App mobile (racine)
@@ -65,7 +67,14 @@ Il n'y a **pas de suite de tests automatisés**. La validation se fait en deux t
 1. lancer l'app (`npm run web`) et parcourir les écrans — l'agent `qa-tester` teste dans le navigateur ;
 2. pour toute fonction SQL, écrire des **assertions SQL** exécutées contre la base via le MCP `supabase` (`execute_sql`) — précédents : 13 assertions pour les équipes, 8 pour les listes d'armées.
 
-Le pilotage du navigateur n'est pas toujours disponible sur le poste. Quand il manque, la vérification passe par : assertions SQL, appels HTTP réels contre l'API Supabase, et lecture du HTML servi par le serveur Expo.
+**Le navigateur, lui, dépend de la session.** Le panneau « Browser » de l'app de bureau (`preview_start` avec `egide-web` ou `egide-backoffice`) pilote les deux apps ; les serveurs MCP Playwright et Chrome DevTools exigent Chrome, absent du poste. Trois réflexes dans le panneau :
+- le serveur Expo met ~20 s à écouter — sonder `curl localhost:8081` en boucle avant de recharger ;
+- les captures d'écran expirent quand la fenêtre est cachée : lire la page avec `read_page` ou `find`, ne pas insister ;
+- la console **cumule** les erreurs des pages précédentes et les appels Supabase n'apparaissent pas dans `read_network_requests`. Pour attribuer un 401 à un écran, exécuter `performance.getEntriesByType('resource')` et lire `responseStatus`.
+
+**Les écrans connectés se testent avec une session ouverte par le porteur**, dans le panneau, onglet par onglet : le jeton ne se transfère pas d'un onglet à l'autre (le classifieur bloque toute route, y compris le `localStorage` et un serveur local). L'agent ne saisit jamais de mot de passe. Quand rien n'est pilotable, la vérification passe par : assertions SQL, appels HTTP réels contre l'API Supabase, et lecture du HTML servi par le serveur Expo.
+
+**Une assertion SQL par rôle, dans un `do $$ … $$`** qui se termine par `raise exception` (l'exception annule le bloc et son message rapporte le résultat). Piège payé deux fois : trois `set_config` posés dans les sous-requêtes d'un même `select` donnent un **faux positif** — il faut `perform set_config(...)` puis `select … into`, une instruction par rôle.
 
 ## Configuration (obligatoire pour démarrer)
 
@@ -124,8 +133,12 @@ Elles ne sont écrites nulle part dans le client. Les redéfinir côté écran, 
 - **ELO national** : départ à 1000, K = 24, marge de victoire ignorée, tournois par équipes / byes / forfaits exclus, recalculé à chaque appel (rien n'est stocké, donc un score corrigé se répercute seul).
 - **Tournois par équipes** : protocole « **pose – deux – choix** » itéré N-1 fois (l'attaquant pose un de ses joueurs, le défenseur en présente deux, l'attaquant choisit, puis les rôles s'inversent) ; le dernier match se forme tout seul. Le **journal `captain_picks` est l'état** — le tour et le geste attendu s'en déduisent, rien n'est stocké en double. Aucune minuterie : l'organisateur peut agir à la place d'un capitaine absent.
 - **Messages** : une seule table pour deux portées (tournoi / équipe) et **suppression douce**, jamais d'effacement.
+- **Les places se comptent dans l'unité du tournoi** : des joueurs en individuel, des **équipes** en tournoi par équipes (`capacity` y est un nombre d'équipes depuis la 0041). `registered_count` porte ce sens des deux côtés (`use-tournaments.ts`, `use-my-tournaments.ts`) et dans `admin_tournaments` (0056). Compter les joueurs contre cette capacité affichait « 12 / 8 · Complet » à quatre équipes de trois.
+- **Le classement individuel masque lui-même ce qui est privé** : `tournament_standings` est `security definer` depuis la 0055 et rend `pseudo` et `faction` **nuls quand `auth.uid()` est nul**. Rangs, bilans et points restent publics — le mode invité est une décision assumée, les pseudos réservés aux connectés aussi. L'écran affiche ce qu'on lui donne (`pseudo` est `string | null` côté mobile) ; il ne connaît pas la règle.
 
 Une **fonction de trigger** se termine par son `revoke` (`from public, anon, authenticated`) comme une fonction RPC se termine par son `grant` — migration 0052. Le privilège ne protège rien (Postgres refuse d'appeler une fonction de trigger directement), mais un avertissement d'advisor qu'on laisse traîner finit par masquer celui qu'il ne fallait pas ignorer.
+
+Deux habitudes de la même famille, posées en 0057 : dans une politique RLS, écrire **`(select auth.uid())`** et non `auth.uid()` — sinon Postgres rappelle la fonction à chaque ligne examinée ; et **toute clé étrangère nouvelle reçoit son index**, que Postgres ne crée jamais tout seul. Lancer `get_advisors` (MCP `supabase`, `security` puis `performance`) après chaque migration : ce qui reste aujourd'hui est voulu — fonctions `security definer` exposées à `authenticated`, lectures publiques accordées à `anon`, deux tables à politiques multiples.
 
 **Les migrations sont numérotées et immuables** : pour changer le schéma ou une fonction, **ajouter une nouvelle migration** `00NN_description.sql`, ne jamais éditer une existante. Corollaire facile à oublier : une fonction est souvent **redéfinie plus tard** par `create or replace` — `start_tournament` et `generate_next_round` sont réécrits en 0045 pour aiguiller entre tournoi individuel et tournoi par équipes. Avant de modifier une fonction, `grep` son nom dans **toutes** les migrations et repartir de la **dernière** définition.
 
@@ -156,6 +169,7 @@ La file n'est pas vidée par un cron : **le client appelle `flushPushQueue()`** 
 ## Pièges déjà payés cher
 
 1. **RLS filtre les lignes, jamais les colonnes.** Une table publique contenant un secret (ex. `teams.invite_code`) l'expose à tous : `revoke select` puis `grant select` colonne par colonne + fonction dédiée (migration 0016).
+   **Corollaire qui a coûté trois semaines** : PostgREST refuse la requête **entière** dès qu'une seule colonne demandée est interdite au rôle. La fiche d'un événement réclamait `registrations.faction`, privée depuis la 0038 — tout visiteur sans compte lisait « Événement introuvable », sur tous les événements, du 27 août au 14 septembre 2026 (réparé en 0054-0055). Donc : après avoir rendu une colonne privée, `grep` les `select(` des **deux** clients pour trouver qui la nomme encore ; et une requête client qui dépend de la session doit la lire du jeton (`supabase.auth.getSession()`), pas d'un `userId` qui n'arrive qu'au second rendu.
 2. **Ne jamais appeler `refresh()` après chaque écriture** dans un écran de saisie rapide : le rechargement fait clignoter le tableau et détruit le focus clavier. Garder un état `saved` local.
 3. **Toute action différée reçoit sa cible explicitement**, jamais déduite de l'état — les fermetures vieillissent.
 4. **Amorçage de formulaire** : un `useEffect` de préremplissage doit attendre **tous** les chargements amont (session → tournoi → inscription → profil) ; chaque hook aval retombe `loading=false` tant que son paramètre est `undefined`.
