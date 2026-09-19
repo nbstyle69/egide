@@ -197,6 +197,13 @@ avec son troisième mode de barre latérale sur les routes `/admin/*`.
     Identifiants de paquet fixés des deux côtés : **`com.nbstyle.egide`**. Ils ne
     changent plus après la première publication sur un store.
 
+21bis. **Déclaration de chiffrement à Apple : exempt** (2026-09-19).
+    `ios.infoPlist.ITSAppUsesNonExemptEncryption: false`. EGIDE ne chiffre rien
+    elle-même : elle parle à Supabase en HTTPS, ce que la réglementation
+    américaine sur l'export considère comme exempt. Sans cette ligne, App Store
+    Connect repose la question **à chaque envoi de build**. À revoir si l'app se
+    met un jour à chiffrer des données par elle-même.
+
 21. **iPhone seulement, pas d'iPad** (2026-09-19, arbitrage du porteur).
     `ios.supportsTablet: false` : aucune mise en page grand écran à soigner, et
     aucune capture d'écran iPad à fournir à la revue Apple. Nuance à connaître :
