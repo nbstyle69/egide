@@ -209,6 +209,28 @@ avec son troisième mode de barre latérale sur les routes `/admin/*`.
     ensuite aligner les versions. `npx expo-doctor` (18 vérifications) passe
     désormais au vert et se lance avant chaque build, pas après un échec.
 
+21quinquies. **Identifiants de paquet : différents selon la plateforme, et
+    c'est voulu** (2026-09-19). Android est **`com.egide.app`** — imposé par
+    une fiche Play Store créée avant ce projet, un nom de paquet ne se change
+    jamais après coup. iOS est **`com.nbstyle.egide`**, déjà sur TestFlight
+    sous ce nom ; l'aligner créerait une seconde app pour un gain purement
+    cosmétique. Aucune conséquence technique : cet identifiant n'est visible
+    d'aucun utilisateur.
+
+    **Le magasin de clés Android est l'élément irremplaçable du projet.**
+    Google attendait l'empreinte `AF:CF:FA:46…`, celle que le Play Console
+    avait retenue du premier dépôt d'archive — alors même qu'il l'avait
+    refusée pour cause de nom de paquet. Or EAS crée **un magasin de clés par
+    nom de paquet** : le passage à `com.egide.app` en avait fabriqué un
+    nouveau, `F3:30:7F…`, que Google refusait. Réparé en rattachant la clé
+    d'origine au nouvel identifiant depuis le tableau de bord Expo, sans
+    toucher au nom de paquet. Deux leçons : un magasin de clés Android ne se
+    partage **pas** entre apps, à l'inverse d'un certificat iOS qui appartient
+    à l'équipe Apple ; et **une copie du `.jks` doit vivre hors du projet**,
+    car sa perte impose une réinitialisation de clé d'envoi chez Google, avec
+    quarante-huit heures d'attente. `credentials.json` est ignoré par git
+    depuis ce jour : il porte les mots de passe du magasin en clair.
+
 21ter. **EAS CLI : minimum 24.4.1, verrouillé dans `eas.json`** (2026-09-19).
     En 21.4.0, `eas build --platform ios` échouait sur « Authentication with
     Apple Developer Portal failed! iTunes service key is empty » — **un bug
@@ -371,26 +393,18 @@ avec son troisième mode de barre latérale sur les routes `/admin/*`.
    plus les push distantes depuis le SDK 53. Le mot de passe EAS ne doit jamais
    passer par l'agent. Le compte est déjà connecté (`nbstyle`).
 
-   **BLOQUANT AVANT TOUT BUILD, vérifié le 19 septembre 2026 : les clés
-   Supabase n'atteindraient pas l'app.** `.env` est ignoré par git, et EAS
-   Build n'envoie pas les fichiers ignorés au serveur ; les trois
-   environnements EAS (`development`, `preview`, `production`) sont vides.
-   Un build produirait donc une app où `isSupabaseConfigured` est faux et
-   `supabase` vaut `null` : elle se lance et n'affiche rien. À faire une
-   fois, par le porteur, avec la valeur réelle prise dans `.env` :
+   **Clés Supabase sur EAS : réglé le 19 septembre 2026.** `.env` est ignoré par
+   git et EAS n'envoie pas les fichiers ignorés au serveur : un build sans
+   variables produisait une app où `supabase` vaut `null`, qui se lance et
+   n'affiche rien. `EXPO_PUBLIC_SUPABASE_URL` (plaintext) et
+   `EXPO_PUBLIC_SUPABASE_ANON_KEY` (sensitive) sont désormais posées sur les
+   trois environnements EAS. Le journal de chaque build les nomme : si cette
+   ligne manque un jour, c'est là qu'il faut regarder.
 
-   ```
-   eas env:create --name EXPO_PUBLIC_SUPABASE_URL --value <url> \
-     --environment development --environment preview --environment production \
-     --visibility plaintext
-   eas env:create --name EXPO_PUBLIC_SUPABASE_ANON_KEY --value <clé anon> \
-     --environment development --environment preview --environment production \
-     --visibility sensitive
-   ```
-
-   Vérifier ensuite avec `eas env:list --environment development`. La clé
-   `anon` n'est pas un secret (elle part dans le bundle, protégée par la RLS),
-   mais `sensitive` évite de l'afficher en clair dans les journaux de build.
+   **Builds de production livrés le 19 septembre 2026.** iOS est **sur
+   TestFlight** (deux testeurs internes), Android est **accepté par le Play
+   Console**. Reste, pour clore vraiment l'EPIC-6 : installer l'app sur un
+   téléphone depuis un canal de test et vérifier la réception d'une push.
 2. **Parcourir l'application dans un navigateur.** Aucun écran livré depuis le
    27 août n'avait été affiché : tout a été vérifié par le typage, le lint et
    des assertions SQL, jamais à l'œil. C'est l'angle mort le plus large du
