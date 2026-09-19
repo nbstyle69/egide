@@ -1,7 +1,7 @@
 # EGIDE — résumé du projet
 
 > Document de passation : à donner tel quel au début d'une nouvelle conversation pour
-> reprendre le travail sans repartir de zéro. Dernière mise à jour : 14 septembre 2026.
+> reprendre le travail sans repartir de zéro. Dernière mise à jour : 19 septembre 2026.
 
 ## 1. Le projet en trois phrases
 
@@ -196,6 +196,13 @@ avec son troisième mode de barre latérale sur les routes `/admin/*`.
     relancer le script du commit, pas ouvrir un éditeur d'image.
     Identifiants de paquet fixés des deux côtés : **`com.nbstyle.egide`**. Ils ne
     changent plus après la première publication sur un store.
+
+21. **iPhone seulement, pas d'iPad** (2026-09-19, arbitrage du porteur).
+    `ios.supportsTablet: false` : aucune mise en page grand écran à soigner, et
+    aucune capture d'écran iPad à fournir à la revue Apple. Nuance à connaître :
+    iOS laisse de toute façon une app iPhone tourner en fenêtre réduite sur un
+    iPad, et cela ne se refuse pas — ce réglage dit seulement qu'on ne promet
+    pas une expérience iPad, pas qu'on l'interdit.
 
 ## 6. Conventions de code
 
