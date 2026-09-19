@@ -197,6 +197,18 @@ avec son troisième mode de barre latérale sur les routes `/admin/*`.
     Identifiants de paquet fixés des deux côtés : **`com.nbstyle.egide`**. Ils ne
     changent plus après la première publication sur un store.
 
+21quater. **Une dépendance du gabarit que personne n'importe peut casser le
+    build natif** (2026-09-19). Le build iOS échouait sur des erreurs Swift
+    dans `@expo/ui` : types absents d'`ExpoModulesCore`, étiquettes d'arguments
+    périmées. La plage `~0.2.0-beta.9` résolvait vers une **préversion canari de
+    janvier 2026**, écrite contre une autre API que le SDK 54. Le paquet
+    n'était importé **nulle part** — seulement déclaré, hérité de
+    `create-expo-app`. Retiré. Leçon : une erreur de compilation native dans un
+    `node_modules/@expo/*` se diagnostique en deux temps — vérifier d'abord si
+    le paquet sert (`grep` de son nom hors `node_modules`), et seulement
+    ensuite aligner les versions. `npx expo-doctor` (18 vérifications) passe
+    désormais au vert et se lance avant chaque build, pas après un échec.
+
 21ter. **EAS CLI : minimum 24.4.1, verrouillé dans `eas.json`** (2026-09-19).
     En 21.4.0, `eas build --platform ios` échouait sur « Authentication with
     Apple Developer Portal failed! iTunes service key is empty » — **un bug
