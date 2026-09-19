@@ -254,6 +254,41 @@ avec son troisième mode de barre latérale sur les routes `/admin/*`.
     iPad, et cela ne se refuse pas — ce réglage dit seulement qu'on ne promet
     pas une expérience iPad, pas qu'on l'interdit.
 
+22. **Le mode invité reste** (2026-09-19, re-confirmé après examen). La question
+    de forcer la connexion au lancement a été posée puis écartée. Deux raisons,
+    d'inégale force. La faible : la règle Apple 5.1.1 interdit d'exiger un compte
+    pour ce qui n'en dépend pas — c'est un risque de refus, pas une certitude, et
+    une app entièrement personnelle comme AthleX est légitimement fermée, elle
+    n'a rien de public à montrer. La forte, qui ne dépend d'aucune boutique :
+    **le partage est le moyen de recrutement du projet**. Un lien vers un tournoi
+    ou un classement envoyé dans un groupe de joueurs doit montrer quelque chose,
+    pas un formulaire. La connexion se déclenche au premier geste qui engage.
+
+23. **Devenir capitaine se demande depuis le profil, à tout moment**
+    (2026-09-19). Pas de choix figé à l'inscription : la plupart des
+    organisateurs jouent aussi, et un joueur peut le devenir six mois plus tard.
+    Le rôle **ouvre des droits, n'en retire aucun** — un capitaine s'inscrit aux
+    tournois comme n'importe qui.
+
+    **Reste à trancher, et le rail de paiement change tout.** Le porteur envisage
+    de facturer ce passage. Or Apple exige son achat intégré dès qu'on déverrouille
+    une fonctionnalité **dans l'app** : un abonnement « capitaine » y tomberait,
+    avec 15 à 30 % de commission. Une place à un tournoi physique, elle, est un
+    service du monde réel — rail Stripe, aucune commission, et `PAIEMENTS.md`
+    l'appelle déjà « le vrai moteur économique du projet ». **Une commission sur
+    les inscriptions rapporte la même chose sans la ponction, et aligne les
+    intérêts** : on gagne quand l'organisateur remplit, pas quand il essaie.
+    Ne pas concevoir le parcours en supposant que l'abonnement est net.
+
+    **Point ouvert, non tranché** : ce qui fait qu'on devient capitaine.
+    Aujourd'hui rien ne filtre — une équipe se crée en trente secondes et son
+    créateur en est capitaine, donc « réserver la création de tournois aux
+    capitaines » n'ajoute qu'un écran, pas un contrôle. Pour filtrer vraiment il
+    faut un humain : validation de l'association avant publication, ou tournois
+    en brouillon jusqu'à approbation. Noter aussi qu'**une équipe qui concourt et
+    une association qui organise ne sont pas le même objet** ; les confondre
+    donnerait le droit de publier à toute équipe de trois joueurs.
+
 ## 6. Conventions de code
 
 - **Tout le texte utilisateur, les commentaires et les noms de routes sont en français.**
