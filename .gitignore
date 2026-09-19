@@ -18,6 +18,12 @@ expo-env.d.ts
 *.key
 *.mobileprovision
 
+# Identifiants de signature : `credentials.json` porte les mots de passe du
+# magasin de clés en clair, à côté du `.jks` déjà ignoré au-dessus. Perdre la
+# clé de signature Android interdit toute mise à jour de l'app sur le Play
+# Store ; la publier serait pire encore.
+credentials.json
+
 # Metro
 .metro-health-check*
 
