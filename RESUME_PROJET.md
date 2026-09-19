@@ -184,6 +184,19 @@ avec son troisième mode de barre latérale sur les routes `/admin/*`.
     la liste et `BattleplanSeason`. Les cartes de tactiques de bataille (6) n'ont
     aucun point d'ancrage dans l'app — choix par joueur en partie — et n'y figurent pas.
 
+20. **Une seule marque, déclinée, jamais redessinée** (2026-09-19). L'app portait
+    encore l'icône, l'écran de démarrage et le voile animé du gabarit Expo — logo
+    Expo sur bleu `#208AEF`, vu à chaque lancement. La marque retenue est celle
+    qui était déjà à l'écran d'accueil : le bouclier `shield-half` d'Ionicons, en
+    doré. Il sert désormais d'icône (sur un dégradé des deux fonds sombres du
+    thème), d'écran de démarrage natif en deux variantes (`#9C7A1F` sur blanc en
+    clair, `#D4AF37` sur noir en sombre), de voile animé, d'icône adaptative
+    Android et d'icône de notification. Les visuels sont **générés** depuis la
+    police Ionicons et les jetons de `theme.ts` — refaire une déclinaison, c'est
+    relancer le script du commit, pas ouvrir un éditeur d'image.
+    Identifiants de paquet fixés des deux côtés : **`com.nbstyle.egide`**. Ils ne
+    changent plus après la première publication sur un store.
+
 ## 6. Conventions de code
 
 - **Tout le texte utilisateur, les commentaires et les noms de routes sont en français.**
@@ -318,10 +331,31 @@ avec son troisième mode de barre latérale sur les routes `/admin/*`.
 ### Ce qui ne peut avancer que par le porteur
 
 1. **EPIC-6 — réception des notifications.** Tout est codé et vérifié jusqu'à
-   l'envoi. Il manque `eas login` puis un development build
+   l'envoi. Il manque un development build
    (`eas build --profile development --platform android`) : Expo Go ne reçoit
    plus les push distantes depuis le SDK 53. Le mot de passe EAS ne doit jamais
-   passer par l'agent.
+   passer par l'agent. Le compte est déjà connecté (`nbstyle`).
+
+   **BLOQUANT AVANT TOUT BUILD, vérifié le 19 septembre 2026 : les clés
+   Supabase n'atteindraient pas l'app.** `.env` est ignoré par git, et EAS
+   Build n'envoie pas les fichiers ignorés au serveur ; les trois
+   environnements EAS (`development`, `preview`, `production`) sont vides.
+   Un build produirait donc une app où `isSupabaseConfigured` est faux et
+   `supabase` vaut `null` : elle se lance et n'affiche rien. À faire une
+   fois, par le porteur, avec la valeur réelle prise dans `.env` :
+
+   ```
+   eas env:create --name EXPO_PUBLIC_SUPABASE_URL --value <url> \
+     --environment development --environment preview --environment production \
+     --visibility plaintext
+   eas env:create --name EXPO_PUBLIC_SUPABASE_ANON_KEY --value <clé anon> \
+     --environment development --environment preview --environment production \
+     --visibility sensitive
+   ```
+
+   Vérifier ensuite avec `eas env:list --environment development`. La clé
+   `anon` n'est pas un secret (elle part dans le bundle, protégée par la RLS),
+   mais `sensitive` évite de l'afficher en clair dans les journaux de build.
 2. **Parcourir l'application dans un navigateur.** Aucun écran livré depuis le
    27 août n'avait été affiché : tout a été vérifié par le typage, le lint et
    des assertions SQL, jamais à l'œil. C'est l'angle mort le plus large du
