@@ -364,7 +364,10 @@ avec son troisième mode de barre latérale sur les routes `/admin/*`.
   `TesteurQA` conservé pour les tests. Le premier admin se nomme à la main en SQL (procédure
   en tête de la migration 0028) ; ensuite un admin en nomme d'autres via `set_admin_role`,
   qui consigne la nomination au journal. **La fonction refuse de retirer le dernier admin.**
-- **Dépôt GitHub** : `github.com/nbstylz/egide` (public). Aucune clé n'y figure, les `.env`
+- **Dépôt GitHub** : `github.com/nbstyle69/egide` (public), transféré depuis le compte
+  `nbstylz` le 19 septembre 2026 pour tout regrouper sur un seul compte — deux comptes
+  GitHub pour une personne cassaient chaque branchement d'outil, à commencer par Vercel.
+  L'ancienne adresse redirige. Aucune clé n'y figure, les `.env`
   sont ignorés. Le code des Edge Functions y est public, sans danger : les règles sont
   appliquées par Postgres, pas par le TypeScript.
 - **Navigateur pilotable : ça dépend de la session.** Le panneau « Browser » de l'app de
