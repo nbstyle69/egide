@@ -165,6 +165,7 @@ La file n'est pas vidée par un cron : **le client appelle `flushPushQueue()`** 
 - Deux helpers du backoffice portent une décision, pas un utilitaire : `lib/score-drafts.ts` garde en local les scores tapés mais pas encore confirmés (le wifi d'une salle des fêtes lâche) — il mémorise aussi la valeur serveur d'origine, et **si elle a changé, le serveur gagne et le brouillon est jeté** ; rien n'est jamais réenvoyé tout seul. `lib/export.ts` écrit les CSV avec séparateur `;`, BOM UTF-8 et fins de ligne CRLF, pour qu'Excel FR les ouvre avec les accents.
 - Le backoffice n'a **aucune bibliothèque de composants** : CSS fait main dans `backoffice/src/index.css`, variables reprenant le thème doré.
 - Un commit par US livrée, message en français expliquant le **pourquoi**.
+- **Aucun build EAS, envoi sur une boutique ou publication sans autorisation explicite du porteur.** Ils consomment ses crédits, sur son compte, et produisent un artefact à son nom. Préparer, vérifier, annoncer que c'est prêt, puis **attendre** : une question restée sans réponse n'est pas un oui.
 
 ## Pièges déjà payés cher
 

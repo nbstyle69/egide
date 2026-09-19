@@ -271,6 +271,12 @@ avec son troisième mode de barre latérale sur les routes `/admin/*`.
 
 ## 7. Méthode de travail (à respecter)
 
+- **AUCUN build, envoi sur une boutique ou publication sans autorisation explicite du
+  porteur** (règle posée le 19 septembre 2026, après un `eas build` lancé sans réponse
+  à la question « dis-moi si je lance »). Un build consomme ses crédits, sur son compte,
+  et produit un artefact à son nom : la décision lui appartient, même quand elle paraît
+  évidente. L'agent prépare, vérifie, annonce que c'est prêt, et **attend**. Sans réponse,
+  on ne lance pas — « il n'a pas dit non » n'est pas une autorisation.
 - Le backlog est tenu dans **`BACKLOG.md`**, alimenté par l'agent **`product-owner`**.
 - **Avis de l'agent `ux-ui` obligatoire avant de coder tout écran ou mise en page.**
 - L'agent `qa-tester` teste dans le navigateur. Les agents sont dans `.claude/agents/`.
