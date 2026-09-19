@@ -12,6 +12,7 @@ import { AdminTableauDeBordPage } from './pages/admin-tableau-de-bord';
 import { AdminTournoisPage } from './pages/admin-tournois';
 import { ConnexionPage } from './pages/connexion';
 import { CreerTournoiPage } from './pages/creer-tournoi';
+import { EmailConfirmePage } from './pages/email-confirme';
 import { CheckInPage } from './pages/check-in';
 import { ClassementPage } from './pages/classement';
 import { InscritsPage } from './pages/inscrits';
@@ -188,6 +189,9 @@ export default function App() {
       <Routes>
         {/* Page publique d'un circuit : consultable sans compte (lien partagé). */}
         <Route path="/circuit/:id" element={<CircuitPublicPage />} />
+        {/* Atterrissage après confirmation d'adresse : c'est le `Site URL` de
+            Supabase, et il tombe forcément sur quelqu'un sans session. */}
+        <Route path="/email-confirme" element={<EmailConfirmePage />} />
         <Route path="/connexion" element={<ConnexionPage />} />
         <Route path="*" element={<Navigate to="/connexion" replace />} />
       </Routes>
@@ -205,6 +209,9 @@ export default function App() {
     <Routes>
       {/* Page publique d'un circuit : même URL pour tous, sans la sidebar. */}
       <Route path="/circuit/:id" element={<CircuitPublicPage />} />
+      {/* Même page pour un organisateur déjà connecté : le lien de
+          confirmation ne doit pas changer de sens selon qui l'ouvre. */}
+      <Route path="/email-confirme" element={<EmailConfirmePage />} />
       <Route path="/connexion" element={<Navigate to="/tournois" replace />} />
       <Route path="/" element={<Navigate to="/tournois" replace />} />
       <Route path="/tournois" element={<TournoisRoute {...shell} />} />
