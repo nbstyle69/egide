@@ -1,0 +1,29 @@
+-- Migration 0058 : on ne se nomme pas administrateur en créant son profil
+--
+-- LA FAILLE. La 0028 avait resserré le `GRANT UPDATE` sur `profiles` colonne
+-- par colonne, en laissant `role` de côté : personne ne pouvait plus se
+-- promouvoir en modifiant son profil. Mais le `GRANT INSERT`, lui, est resté
+-- entier — et la politique d'insertion ne vérifie que `auth.uid() = id`.
+--
+-- Conséquence, vérifiée par assertion le 19 septembre 2026 : n'importe quel
+-- compte fraîchement créé pouvait écrire son propre profil avec
+-- `role = 'admin'` et obtenir tous les pouvoirs d'administration — annuler
+-- les tournois d'autrui, désactiver des comptes, dissoudre des équipes.
+-- Le trou s'ouvrait à l'écran de création de profil, c'est-à-dire au premier
+-- geste de tout nouvel inscrit.
+--
+-- CE QU'ON FAIT. La même chose qu'en 0028, pour l'autre verbe : `role` sort
+-- du droit d'insertion. La colonne a `'user'` pour valeur par défaut, donc un
+-- `insert` qui ne la mentionne pas — ce que fait le client — continue de
+-- fonctionner à l'identique. Un `insert` qui la mentionne est désormais
+-- refusé par Postgres, avant même la politique RLS.
+--
+-- LA RÈGLE QUI EN DÉCOULE, et qui vaut pour la prochaine colonne sensible :
+-- resserrer un droit d'écriture, c'est resserrer **les deux verbes**. Un
+-- `UPDATE` protégé et un `INSERT` ouvert laissent la porte entrouverte, et
+-- elle se pousse au moment de la création, quand personne ne regarde.
+--
+-- `set_admin_role` (0028) reste la seule voie de nomination, et elle consigne
+-- au journal d'administration.
+
+revoke insert (role) on public.profiles from authenticated, anon;
