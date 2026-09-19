@@ -197,6 +197,15 @@ avec son troisième mode de barre latérale sur les routes `/admin/*`.
     Identifiants de paquet fixés des deux côtés : **`com.nbstyle.egide`**. Ils ne
     changent plus après la première publication sur un store.
 
+21ter. **EAS CLI : minimum 24.4.1, verrouillé dans `eas.json`** (2026-09-19).
+    En 21.4.0, `eas build --platform ios` échouait sur « Authentication with
+    Apple Developer Portal failed! iTunes service key is empty » — **un bug
+    d'EAS CLI**, pas un problème de compte ni d'Apple, corrigé en 24.4.1
+    ([expo/eas-cli#4392](https://github.com/expo/eas-cli/issues/4392)). Une
+    heure peut se perdre à chercher du côté du compte Apple : commencer par
+    `eas --version`. La contrainte `cli.version` de `eas.json` interdit
+    désormais les versions atteintes par le bug.
+
 21bis. **Déclaration de chiffrement à Apple : exempt** (2026-09-19).
     `ios.infoPlist.ITSAppUsesNonExemptEncryption: false`. EGIDE ne chiffre rien
     elle-même : elle parle à Supabase en HTTPS, ce que la réglementation
